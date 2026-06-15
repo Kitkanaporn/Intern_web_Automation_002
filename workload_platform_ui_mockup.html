@@ -1,0 +1,819 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.frame{background:var(--color-background-tertiary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);overflow:hidden;font-size:12px;position:relative}
+.topbar{background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:0 16px;height:40px;display:flex;align-items:center;justify-content:space-between}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.logo{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.nav-pills{display:flex;gap:2px}
+.np{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;color:var(--color-text-secondary);border:none;background:none}
+.np.active{background:var(--color-background-secondary);color:var(--color-text-primary);font-weight:500}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.avatar{width:24px;height:24px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:#0C447C}
+.badge-dot{width:7px;height:7px;border-radius:50%;background:#E24B4A;margin-left:-6px;margin-top:-10px}
+.main-area{display:flex;height:480px}
+.sidebar-nav{width:40px;background:var(--color-background-primary);border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:14px}
+.snav-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-text-tertiary);font-size:15px}
+.snav-icon.active{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.content-area{flex:1;display:flex;overflow:hidden}
+.screen{display:none;width:100%;flex-direction:column}
+.screen.active{display:flex}
+.two-col{display:flex;flex:1;overflow:hidden}
+.main-col{flex:1;overflow:auto;padding:14px}
+.ai-sidebar{width:230px;border-left:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);display:flex;flex-direction:column;overflow:hidden}
+.ai-header{padding:10px 12px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:6px}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:#1D9E75}
+.ai-label{font-size:11px;font-weight:500;color:var(--color-text-primary)}
+.ai-body{padding:10px 12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.ai-bubble{background:var(--color-background-secondary);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--color-text-secondary);line-height:1.6}
+.ai-section-label{font-size:10px;font-weight:500;color:var(--color-text-tertiary);letter-spacing:0.04em;text-transform:uppercase;margin-top:4px}
+.ai-dept-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.ai-dept-name{font-size:11px;color:var(--color-text-secondary)}
+.ai-dept-badge{font-size:10px;padding:1px 6px;border-radius:4px;font-weight:500}
+.page-title{font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.page-sub{font-size:11px;color:var(--color-text-tertiary);margin-bottom:12px}
+.input-row{display:flex;gap:8px;margin-bottom:12px}
+.inp{flex:1;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 10px;font-size:11px;color:var(--color-text-secondary);background:var(--color-background-primary)}
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tag{font-size:10px;padding:3px 8px;border-radius:12px;border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);cursor:pointer}
+.tag.active{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
+.dept-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.dept-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px}
+.dept-card.highlighted{border-color:#85B7EB;background:#E6F1FB}
+.dept-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.dept-name{font-size:11px;font-weight:500;color:var(--color-text-primary)}
+.dept-count{font-size:10px;color:var(--color-text-tertiary)}
+.assignee-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.mini-avatar{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:500}
+.assignee-name{font-size:10px;color:var(--color-text-secondary)}
+.priority-pill{font-size:9px;padding:1px 6px;border-radius:4px;font-weight:500}
+.action-bar{border-top:0.5px solid var(--color-border-tertiary);padding:10px 14px;background:var(--color-background-primary);display:flex;justify-content:flex-end;gap:8px}
+.btn-sec{border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 12px;font-size:11px;color:var(--color-text-secondary);background:none;cursor:pointer}
+.btn-pri{border-radius:var(--border-radius-md);padding:6px 14px;font-size:11px;color:#fff;background:#185FA5;border:none;cursor:pointer}
+.btn-approve{border-radius:var(--border-radius-md);padding:6px 14px;font-size:11px;color:#085041;background:#9FE1CB;border:none;cursor:pointer;font-weight:500}
+.approval-banner{background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px}
+.approval-text{font-size:11px;color:#633806;line-height:1.5}
+.seq-track{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.seq-step{display:flex;align-items:flex-start;gap:10px}
+.seq-line-col{display:flex;flex-direction:column;align-items:center;gap:0}
+.seq-circle{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0}
+.seq-vline{width:1px;flex:1;min-height:16px}
+.seq-content{flex:1;padding-bottom:10px}
+.seq-title{font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.seq-meta{font-size:10px;color:var(--color-text-tertiary)}
+.notif-list{display:flex;flex-direction:column;gap:6px}
+.notif-item{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.notif-item.unread{border-left:3px solid #185FA5;background:#E6F1FB}
+.notif-icon{font-size:16px;color:var(--color-text-tertiary);flex-shrink:0;margin-top:1px}
+.notif-item.unread .notif-icon{color:#185FA5}
+.notif-body{flex:1}
+.notif-title{font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.notif-desc{font-size:10px;color:var(--color-text-secondary);line-height:1.5}
+.notif-time{font-size:10px;color:var(--color-text-tertiary);white-space:nowrap;margin-top:2px}
+.screen-switcher{display:flex;gap:6px;margin-bottom:2px}
+.sw-btn{font-size:10px;padding:3px 8px;border-radius:4px;border:0.5px solid var(--color-border-secondary);color:var(--color-text-tertiary);background:none;cursor:pointer}
+.sw-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.ai-suggestion-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:8px;margin-bottom:6px}
+.ai-suggestion-card.accepted{border-color:#9FE1CB;background:#E1F5EE}
+.ai-suggestion-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ai-suggestion-actions{display:flex;gap:6px}
+.btn-accept-sm{flex:1;font-size:10px;padding:4px 6px;border-radius:5px;border:none;background:#9FE1CB;color:#085041;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px}
+.btn-edit-sm{flex:1;font-size:10px;padding:4px 6px;border-radius:5px;border:0.5px solid var(--color-border-secondary);background:none;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px}
+.ai-edit-form{display:none;flex-direction:column;gap:6px;margin-top:6px;padding-top:6px;border-top:0.5px solid var(--color-border-tertiary)}
+.ai-edit-row{display:flex;align-items:center;gap:6px}
+.ai-edit-label{font-size:10px;color:var(--color-text-tertiary);width:58px;flex-shrink:0}
+.ai-edit-select{flex:1;font-size:10px;padding:4px 6px;border-radius:5px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary)}
+.btn-save-sm{font-size:10px;padding:4px 10px;border-radius:5px;border:none;background:#185FA5;color:#fff;cursor:pointer}
+.btn-cancel-sm{font-size:10px;padding:4px 10px;border-radius:5px;border:0.5px solid var(--color-border-secondary);background:none;color:var(--color-text-secondary);cursor:pointer}
+.accepted-tag{font-size:10px;color:#085041;font-weight:500;display:flex;align-items:center;gap:4px;padding:4px 0}
+.ai-refine-section{border-top:0.5px solid var(--color-border-tertiary);margin-top:6px;padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.ai-textarea{width:100%;font-size:11px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 8px;color:var(--color-text-secondary);background:var(--color-background-primary);resize:vertical;min-height:46px;font-family:inherit}
+.btn-regenerate{font-size:11px;padding:6px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:none;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
+.add-task-section{border-top:0.5px solid var(--color-border-tertiary);margin-top:4px;padding-top:12px}
+.add-task-form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.add-task-row{display:flex;gap:8px}
+.btn-add-task{align-self:flex-start;font-size:11px;padding:6px 14px;border-radius:var(--border-radius-md);border:none;background:#185FA5;color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px}
+.approval-banner.success{background:#E1F5EE;border-color:#9FE1CB}
+.approval-banner.success .approval-text{color:#085041}
+.approval-banner.error{background:#FCEBEB;border-color:#F2A6A6}
+.approval-banner.error .approval-text{color:#791F1F}
+.approval-banner.info{background:#E6F1FB;border-color:#85B7EB}
+.approval-banner.info .approval-text{color:#0C447C}
+.modal-overlay{position:absolute;inset:0;background:rgba(15,23,42,0.45);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-box{background:var(--color-background-primary);border-radius:var(--border-radius-lg);padding:16px;width:260px;box-shadow:0 8px 24px rgba(0,0,0,0.18)}
+.modal-title{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.modal-desc{font-size:11px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:10px}
+.modal-textarea{display:none;width:100%;font-size:11px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 8px;color:var(--color-text-secondary);background:var(--color-background-primary);resize:vertical;min-height:50px;font-family:inherit;margin-bottom:10px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px}
+.btn-spinner{display:inline-block;width:10px;height:10px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:5px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<h2 class="sr-only">UI Mockup — AI-Assisted Workload Distribution Platform แสดง 3 หน้าหลัก: New Request, Approval, และ Notifications</h2>
+
+<div style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
+  <span style="font-size:11px;color:var(--color-text-tertiary)">หน้าจอ:</span>
+  <button class="sw-btn active" onclick="switchScreen('request',this)">New request</button>
+  <button class="sw-btn" onclick="switchScreen('approval',this)">Approval & Jira</button>
+  <button class="sw-btn" onclick="switchScreen('notif',this)">Notifications</button>
+</div>
+
+<div class="frame">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo"><i class="ti ti-layout-distribute-horizontal" style="font-size:13px;margin-right:4px" aria-hidden="true"></i>WorkDistrib</span>
+      <div class="nav-pills">
+        <button class="np active">Dashboard</button>
+        <button class="np">Requests</button>
+        <button class="np">My tasks</button>
+        <button class="np">Reports</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <i class="ti ti-bell" style="font-size:15px;color:var(--color-text-tertiary)" aria-hidden="true"></i>
+      <div class="badge-dot"></div>
+      <div class="avatar">KN</div>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="sidebar-nav">
+      <div class="snav-icon active"><i class="ti ti-layout-grid" aria-hidden="true"></i></div>
+      <div class="snav-icon"><i class="ti ti-file-plus" aria-hidden="true"></i></div>
+      <div class="snav-icon"><i class="ti ti-checklist" aria-hidden="true"></i></div>
+      <div class="snav-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></div>
+      <div class="snav-icon" style="margin-top:auto"><i class="ti ti-settings" aria-hidden="true"></i></div>
+    </div>
+
+    <div class="content-area">
+
+      <div id="screen-request" class="screen active">
+        <div class="two-col">
+          <div class="main-col">
+            <p class="page-title">New workload request</p>
+            <p class="page-sub">กรอกความต้องการของ client — AI จะแนะนำการกระจายงานใน sidebar</p>
+
+            <div class="input-row">
+              <input class="inp" placeholder="Client name / Project name" style="max-width:200px" readonly>
+              <input class="inp" placeholder="Request title" readonly>
+            </div>
+
+            <div style="border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:8px 10px;font-size:11px;color:var(--color-text-tertiary);background:var(--color-background-primary);margin-bottom:10px;min-height:70px;line-height:1.6">
+              Client ต้องการพัฒนาระบบ Corporate Action สำหรับการจ่าย Stock Dividend รองรับ ex-date calculation ใหม่ตาม SEC circular ที่ออกมาเมื่อเดือนที่แล้ว ต้องการให้เสร็จภายใน Q1...
+            </div>
+
+            <p style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:6px;font-weight:500;letter-spacing:0.03em;text-transform:uppercase">ประเภทงาน</p>
+            <div class="tag-row">
+              <span class="tag active">Regulatory change</span>
+              <span class="tag active">System development</span>
+              <span class="tag">UAT support</span>
+              <span class="tag">Data migration</span>
+              <span class="tag">Documentation</span>
+            </div>
+
+            <p style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:8px;font-weight:500;letter-spacing:0.03em;text-transform:uppercase">กระจายงานให้แผนก</p>
+            <div class="dept-grid" id="deptGrid">
+              <div class="dept-card highlighted">
+                <div class="dept-card-top">
+                  <span class="dept-name">Business Analysis</span>
+                  <span class="priority-pill" style="background:#FAEEDA;color:#633806">High</span>
+                </div>
+                <div class="assignee-row">
+                  <div class="mini-avatar" style="background:#E6F1FB;color:#0C447C">ST</div>
+                  <span class="assignee-name">Suthida T.</span>
+                </div>
+                <span class="dept-count">3 tasks · due Jan 20</span>
+              </div>
+              <div class="dept-card highlighted">
+                <div class="dept-card-top">
+                  <span class="dept-name">Development</span>
+                  <span class="priority-pill" style="background:#FAEEDA;color:#633806">High</span>
+                </div>
+                <div class="assignee-row">
+                  <div class="mini-avatar" style="background:#E1F5EE;color:#085041">PK</div>
+                  <span class="assignee-name">Piyawat K.</span>
+                </div>
+                <span class="dept-count">5 tasks · due Feb 10</span>
+              </div>
+              <div class="dept-card">
+                <div class="dept-card-top">
+                  <span class="dept-name">QA & Testing</span>
+                  <span class="priority-pill" style="background:#E1F5EE;color:#085041">Medium</span>
+                </div>
+                <div class="assignee-row">
+                  <div class="mini-avatar" style="background:#EEEDFE;color:#3C3489">NW</div>
+                  <span class="assignee-name">Natcha W.</span>
+                </div>
+                <span class="dept-count">4 tasks · due Feb 20</span>
+              </div>
+              <div class="dept-card">
+                <div class="dept-card-top">
+                  <span class="dept-name">Registrar Ops</span>
+                  <span class="priority-pill" style="background:#E1F5EE;color:#085041">Medium</span>
+                </div>
+                <div class="assignee-row">
+                  <div class="mini-avatar" style="background:#FAECE7;color:#712B13">AR</div>
+                  <span class="assignee-name">Ananya R.</span>
+                </div>
+                <span class="dept-count">2 tasks · due Mar 1</span>
+              </div>
+            </div>
+
+            <div class="add-task-section">
+              <p style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:0;font-weight:500;letter-spacing:0.03em;text-transform:uppercase">เพิ่มงานเข้า workflow</p>
+              <div class="add-task-form">
+                <input id="newTaskName" class="inp" placeholder="ชื่องาน">
+                <div class="add-task-row">
+                  <select id="newTaskDept" class="inp">
+                    <option>Business Analysis</option>
+                    <option>Development</option>
+                    <option>QA & Testing</option>
+                    <option>Registrar Ops</option>
+                  </select>
+                  <select id="newTaskPriority" class="inp">
+                    <option>Critical</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                  </select>
+                </div>
+                <div class="add-task-row">
+                  <input id="newTaskAssignee" class="inp" placeholder="ผู้รับผิดชอบ">
+                  <input id="newTaskDue" class="inp" type="date">
+                </div>
+                <button class="btn-add-task" onclick="addTaskToWorkflow()"><i class="ti ti-plus" style="font-size:12px" aria-hidden="true"></i>เพิ่มงาน</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ai-sidebar">
+            <div class="ai-header">
+              <div class="ai-dot"></div>
+              <span class="ai-label">AI guide</span>
+              <i class="ti ti-sparkles" style="font-size:12px;color:#1D9E75;margin-left:auto" aria-hidden="true"></i>
+            </div>
+            <div class="ai-body">
+              <div class="ai-bubble">
+                วิเคราะห์แล้ว — งานนี้เกี่ยวข้องกับ SEC circular และ corporate action calculation ควรเริ่มที่ BA ก่อนเพื่อแปลง requirement
+              </div>
+              <span class="ai-section-label">แนะนำการกระจายงาน</span>
+              <div>
+                <div class="ai-suggestion-card" id="aiSugg1">
+                  <div class="ai-suggestion-header">
+                    <span class="ai-dept-name">BA dept</span>
+                    <span class="ai-dept-badge" style="background:#FAEEDA;color:#633806">Phase 1</span>
+                  </div>
+                  <div class="ai-suggestion-actions">
+                    <button class="btn-accept-sm" onclick="acceptSuggestion('aiSugg1')"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>Accept</button>
+                    <button class="btn-edit-sm" onclick="toggleEdit('aiSugg1')"><i class="ti ti-pencil" style="font-size:11px" aria-hidden="true"></i>Edit</button>
+                  </div>
+                  <div class="ai-edit-form">
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">ผู้รับผิดชอบ</label>
+                      <select class="ai-edit-select">
+                        <option>Suthida T.</option>
+                        <option>Piyawat K.</option>
+                        <option>Natcha W.</option>
+                        <option>Ananya R.</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">Priority</label>
+                      <select class="ai-edit-select">
+                        <option>High</option>
+                        <option>Medium</option>
+                        <option>Low</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row" style="justify-content:flex-end">
+                      <button class="btn-cancel-sm" onclick="cancelEdit('aiSugg1')">Cancel</button>
+                      <button class="btn-save-sm" onclick="saveEdit('aiSugg1')">Save</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="ai-suggestion-card" id="aiSugg2">
+                  <div class="ai-suggestion-header">
+                    <span class="ai-dept-name">Dev dept</span>
+                    <span class="ai-dept-badge" style="background:#FAEEDA;color:#633806">Phase 2</span>
+                  </div>
+                  <div class="ai-suggestion-actions" style="display:none">
+                    <button class="btn-accept-sm" onclick="acceptSuggestion('aiSugg2')"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>Accept</button>
+                    <button class="btn-edit-sm" onclick="toggleEdit('aiSugg2')"><i class="ti ti-pencil" style="font-size:11px" aria-hidden="true"></i>Edit</button>
+                  </div>
+                  <div class="ai-edit-form" style="display:flex">
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">ผู้รับผิดชอบ</label>
+                      <select class="ai-edit-select">
+                        <option selected>Piyawat K.</option>
+                        <option>Suthida T.</option>
+                        <option>Natcha W.</option>
+                        <option>Ananya R.</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">Priority</label>
+                      <select class="ai-edit-select">
+                        <option selected>High</option>
+                        <option>Medium</option>
+                        <option>Low</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row" style="justify-content:flex-end">
+                      <button class="btn-cancel-sm" onclick="cancelEdit('aiSugg2')">Cancel</button>
+                      <button class="btn-save-sm" onclick="saveEdit('aiSugg2')">Save</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="ai-suggestion-card" id="aiSugg3">
+                  <div class="ai-suggestion-header">
+                    <span class="ai-dept-name">QA dept</span>
+                    <span class="ai-dept-badge" style="background:#E1F5EE;color:#085041">Phase 3</span>
+                  </div>
+                  <div class="ai-suggestion-actions">
+                    <button class="btn-accept-sm" onclick="acceptSuggestion('aiSugg3')"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>Accept</button>
+                    <button class="btn-edit-sm" onclick="toggleEdit('aiSugg3')"><i class="ti ti-pencil" style="font-size:11px" aria-hidden="true"></i>Edit</button>
+                  </div>
+                  <div class="ai-edit-form">
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">ผู้รับผิดชอบ</label>
+                      <select class="ai-edit-select">
+                        <option selected>Natcha W.</option>
+                        <option>Suthida T.</option>
+                        <option>Piyawat K.</option>
+                        <option>Ananya R.</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">Priority</label>
+                      <select class="ai-edit-select">
+                        <option>High</option>
+                        <option selected>Medium</option>
+                        <option>Low</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row" style="justify-content:flex-end">
+                      <button class="btn-cancel-sm" onclick="cancelEdit('aiSugg3')">Cancel</button>
+                      <button class="btn-save-sm" onclick="saveEdit('aiSugg3')">Save</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="ai-suggestion-card" id="aiSugg4">
+                  <div class="ai-suggestion-header">
+                    <span class="ai-dept-name">Registrar</span>
+                    <span class="ai-dept-badge" style="background:#E1F5EE;color:#085041">Phase 4</span>
+                  </div>
+                  <div class="ai-suggestion-actions">
+                    <button class="btn-accept-sm" onclick="acceptSuggestion('aiSugg4')"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i>Accept</button>
+                    <button class="btn-edit-sm" onclick="toggleEdit('aiSugg4')"><i class="ti ti-pencil" style="font-size:11px" aria-hidden="true"></i>Edit</button>
+                  </div>
+                  <div class="ai-edit-form">
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">ผู้รับผิดชอบ</label>
+                      <select class="ai-edit-select">
+                        <option selected>Ananya R.</option>
+                        <option>Suthida T.</option>
+                        <option>Piyawat K.</option>
+                        <option>Natcha W.</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row">
+                      <label class="ai-edit-label">Priority</label>
+                      <select class="ai-edit-select">
+                        <option>High</option>
+                        <option selected>Medium</option>
+                        <option>Low</option>
+                      </select>
+                    </div>
+                    <div class="ai-edit-row" style="justify-content:flex-end">
+                      <button class="btn-cancel-sm" onclick="cancelEdit('aiSugg4')">Cancel</button>
+                      <button class="btn-save-sm" onclick="saveEdit('aiSugg4')">Save</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <span class="ai-section-label">ความเสี่ยงที่ตรวจพบ</span>
+              <div class="ai-bubble" style="background:#FCEBEB;color:#791F1F">
+                deadline Q1 กระชั้นชิด — Dev อาจไม่มีเวลาเพียงพอหาก BA ล่าช้า
+              </div>
+              <div class="ai-bubble">
+                แนะนำตั้ง dependency: Dev เริ่มได้ก็ต่อเมื่อ BA อนุมัติ spec แล้วเท่านั้น
+              </div>
+
+              <div class="ai-refine-section">
+                <span class="ai-section-label">ปรับปรุงคำแนะนำด้วย AI</span>
+                <textarea class="ai-textarea" placeholder="เพิ่ม context หรือบอก AI ว่าควรแก้อะไร เช่น 'เพิ่ม buffer ให้ Dev อีก 1 สัปดาห์'"></textarea>
+                <button class="btn-regenerate"><i class="ti ti-refresh" style="font-size:12px" aria-hidden="true"></i>Regenerate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn-sec">Save draft</button>
+          <button class="btn-pri">Submit for approval</button>
+        </div>
+      </div>
+
+      <div id="screen-approval" class="screen">
+        <div class="two-col">
+          <div class="main-col">
+            <p class="page-title">Approval — Corporate Action: Stock Dividend</p>
+            <p class="page-sub">ตรวจสอบและอนุมัติการกระจายงานก่อนส่งเข้า Jira</p>
+
+            <div class="approval-banner" id="approvalBanner">
+              <i class="ti ti-alert-triangle" id="approvalBannerIcon" style="font-size:14px;color:#854F0B;flex-shrink:0;margin-top:1px" aria-hidden="true"></i>
+              <span class="approval-text" id="approvalBannerText">รออนุมัติจาก <strong>คุณ Kanya N.</strong> — AI แนะนำ sequential workflow 4 phase ตรวจสอบและปรับแก้ได้ก่อนกด Approve</span>
+            </div>
+
+            <p style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:8px;font-weight:500;letter-spacing:0.03em;text-transform:uppercase">Sequential workflow ที่จะส่งเข้า Jira</p>
+            <div class="seq-track">
+              <div class="seq-step">
+                <div class="seq-line-col">
+                  <div class="seq-circle" id="seqStep1Circle" style="background:#E6F1FB;color:#0C447C">1</div>
+                  <div class="seq-vline" style="background:var(--color-border-secondary)"></div>
+                </div>
+                <div class="seq-content">
+                  <p class="seq-title">Business Analysis — requirement & spec</p>
+                  <p class="seq-meta">Suthida T. · 3 tasks · due Jan 20 · <span id="seqStep1Status" style="color:#1D9E75">เริ่มได้ทันที</span></p>
+                </div>
+              </div>
+              <div class="seq-step">
+                <div class="seq-line-col">
+                  <div class="seq-circle" style="background:#FAEEDA;color:#633806">2</div>
+                  <div class="seq-vline" style="background:var(--color-border-secondary)"></div>
+                </div>
+                <div class="seq-content">
+                  <p class="seq-title">Development — system implementation</p>
+                  <p class="seq-meta">Piyawat K. · 5 tasks · due Feb 10 · <span style="color:#BA7517">รอ Phase 1 เสร็จก่อน</span></p>
+                </div>
+              </div>
+              <div class="seq-step">
+                <div class="seq-line-col">
+                  <div class="seq-circle" style="background:#EEEDFE;color:#3C3489">3</div>
+                  <div class="seq-vline" style="background:var(--color-border-secondary)"></div>
+                </div>
+                <div class="seq-content">
+                  <p class="seq-title">QA & Testing — test case & UAT</p>
+                  <p class="seq-meta">Natcha W. · 4 tasks · due Feb 20 · <span style="color:#BA7517">รอ Phase 2 เสร็จก่อน</span></p>
+                </div>
+              </div>
+              <div class="seq-step">
+                <div class="seq-line-col">
+                  <div class="seq-circle" style="background:#FAECE7;color:#712B13">4</div>
+                </div>
+                <div class="seq-content">
+                  <p class="seq-title">Registrar Operations — go-live & monitoring</p>
+                  <p class="seq-meta">Ananya R. · 2 tasks · due Mar 1 · <span style="color:#BA7517">รอ Phase 3 เสร็จก่อน</span></p>
+                </div>
+              </div>
+            </div>
+
+            <div id="jiraSummary" style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;font-size:11px;color:var(--color-text-secondary);line-height:1.6">
+              <i class="ti ti-brand-jira" style="font-size:13px;margin-right:4px;color:#185FA5" aria-hidden="true"></i>
+              เมื่อ Approve — ระบบจะสร้าง <strong style="color:var(--color-text-primary)">14 Jira tasks</strong> อัตโนมัติ และส่ง email แจ้ง 4 แผนก พร้อมตั้ง dependency ตาม phase
+            </div>
+          </div>
+
+          <div class="ai-sidebar">
+            <div class="ai-header">
+              <div class="ai-dot"></div>
+              <span class="ai-label">AI summary</span>
+            </div>
+            <div class="ai-body">
+              <div class="ai-bubble">
+                งานนี้มี dependency chain ที่เข้มงวด — หาก BA ล่าช้า 3 วัน จะกระทบ deadline ของทุก phase
+              </div>
+              <span class="ai-section-label">ความมั่นใจของ AI</span>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+                    <span style="font-size:10px;color:var(--color-text-secondary)">การกระจายงาน</span>
+                    <span style="font-size:10px;color:var(--color-text-primary);font-weight:500">92%</span>
+                  </div>
+                  <div style="height:4px;background:var(--color-background-secondary);border-radius:2px"><div style="width:92%;height:4px;background:#1D9E75;border-radius:2px"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+                    <span style="font-size:10px;color:var(--color-text-secondary)">Timeline feasibility</span>
+                    <span style="font-size:10px;color:#BA7517;font-weight:500">71%</span>
+                  </div>
+                  <div style="height:4px;background:var(--color-background-secondary);border-radius:2px"><div style="width:71%;height:4px;background:#EF9F27;border-radius:2px"></div></div>
+                </div>
+              </div>
+              <div class="ai-bubble" style="background:#FAEEDA;color:#633806;margin-top:4px">
+                แนะนำ: ขอ buffer 3 วันจาก client เพื่อลด risk
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar" id="approvalActionBar">
+          <button class="btn-sec" onclick="openApprovalModal('changes')">Request changes</button>
+          <button class="btn-sec" onclick="openApprovalModal('reject')">Reject</button>
+          <button class="btn-approve" onclick="openApprovalModal('approve')"><i class="ti ti-check" style="font-size:12px;margin-right:4px" aria-hidden="true"></i>Approve & send to Jira</button>
+        </div>
+        <div class="action-bar" id="approvalResetBar" style="display:none">
+          <button class="btn-sec" onclick="resetApprovalDemo()"><i class="ti ti-refresh" style="font-size:12px;margin-right:4px" aria-hidden="true"></i>เริ่มใหม่ (demo)</button>
+        </div>
+
+        <div class="modal-overlay" id="approvalModalOverlay">
+          <div class="modal-box">
+            <p class="modal-title" id="modalTitle"></p>
+            <p class="modal-desc" id="modalDesc"></p>
+            <textarea class="modal-textarea" id="modalReasonInput"></textarea>
+            <div class="modal-actions">
+              <button class="btn-sec" onclick="closeApprovalModal()">ยกเลิก</button>
+              <button class="btn-approve" id="modalConfirmBtn" onclick="confirmApprovalAction()">ยืนยัน</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="screen-notif" class="screen">
+        <div class="main-col" style="flex:1">
+          <p class="page-title">Notifications</p>
+          <p class="page-sub">การแจ้งเตือนการมอบหมายงานและ sequential phase triggers</p>
+
+          <div class="notif-list">
+            <div class="notif-item unread">
+              <i class="ti ti-brand-jira notif-icon" aria-hidden="true"></i>
+              <div class="notif-body">
+                <p class="notif-title">งานใหม่ถูกมอบหมายให้คุณ — Phase 1: BA Spec</p>
+                <p class="notif-desc">Project: Corporate Action — Stock Dividend · 3 tasks ใน Jira · due Jan 20, 2026</p>
+              </div>
+              <span class="notif-time">2 min ago</span>
+            </div>
+
+            <div class="notif-item unread">
+              <i class="ti ti-mail notif-icon" aria-hidden="true"></i>
+              <div class="notif-body">
+                <p class="notif-title">Email ส่งแล้ว — Business Analysis team</p>
+                <p class="notif-desc">แจ้ง Suthida T. และทีม BA จำนวน 3 คน ได้รับมอบหมายงาน Phase 1</p>
+              </div>
+              <span class="notif-time">2 min ago</span>
+            </div>
+
+            <div class="notif-item" style="border-left:3px solid #1D9E75;background:#E1F5EE">
+              <i class="ti ti-player-play notif-icon" style="color:#0F6E56" aria-hidden="true"></i>
+              <div class="notif-body">
+                <p class="notif-title" style="color:#085041">Phase trigger — Dev team พร้อมเริ่ม Phase 2</p>
+                <p class="notif-desc" style="color:#0F6E56">BA อนุมัติ spec แล้ว — ระบบแจ้งเตือน Piyawat K. ให้เริ่ม Development ได้เลย</p>
+              </div>
+              <span class="notif-time" style="color:#0F6E56">Just now</span>
+            </div>
+
+            <div class="notif-item">
+              <i class="ti ti-bell notif-icon" aria-hidden="true"></i>
+              <div class="notif-body">
+                <p class="notif-title">Reminder — QA team: Phase 3 เริ่มใน 3 วัน</p>
+                <p class="notif-desc">Dev phase กำลังจะเสร็จ — แจ้ง Natcha W. เตรียม test case ไว้รอ</p>
+              </div>
+              <span class="notif-time">1 hr ago</span>
+            </div>
+
+            <div class="notif-item">
+              <i class="ti ti-check notif-icon" aria-hidden="true"></i>
+              <div class="notif-body">
+                <p class="notif-title">Approved — Corporate Action: Rights Offering Q4</p>
+                <p class="notif-desc">14 Jira tasks สร้างแล้ว · Email ส่งครบ 4 แผนก · Sequential dependencies ตั้งแล้ว</p>
+              </div>
+              <span class="notif-time">Yesterday</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function switchScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sw-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// Show the inline edit form for an AI suggestion and hide its accept/edit buttons
+function toggleEdit(id) {
+  const card = document.getElementById(id);
+  card.querySelector('.ai-suggestion-actions').style.display = 'none';
+  card.querySelector('.ai-edit-form').style.display = 'flex';
+}
+
+// Cancel editing — restore the accept/edit buttons without keeping changes
+function cancelEdit(id) {
+  const card = document.getElementById(id);
+  card.querySelector('.ai-edit-form').style.display = 'none';
+  card.querySelector('.ai-suggestion-actions').style.display = 'flex';
+}
+
+// Save the edited suggestion — replace the buttons with a "edited" confirmation
+function saveEdit(id) {
+  const card = document.getElementById(id);
+  card.querySelector('.ai-edit-form').style.display = 'none';
+  card.querySelector('.ai-suggestion-actions').innerHTML =
+    '<span class="accepted-tag"><i class="ti ti-check" aria-hidden="true"></i>แก้ไขแล้ว</span>';
+  card.classList.add('accepted');
+}
+
+// Mark an AI suggestion as accepted as-is
+function acceptSuggestion(id) {
+  const card = document.getElementById(id);
+  card.querySelector('.ai-suggestion-actions').innerHTML =
+    '<span class="accepted-tag"><i class="ti ti-check" aria-hidden="true"></i>ยอมรับแล้ว</span>';
+  card.classList.add('accepted');
+}
+
+// Priority pill colors, matching the existing dept-card style
+const PRIORITY_STYLES = {
+  Critical: 'background:#FCEBEB;color:#791F1F',
+  High: 'background:#FAEEDA;color:#633806',
+  Medium: 'background:#E1F5EE;color:#085041',
+  Low: 'background:var(--color-background-secondary);color:var(--color-text-tertiary)',
+};
+
+// Append a manually-added task as a new dept-card in the workflow grid
+function addTaskToWorkflow() {
+  const name = document.getElementById('newTaskName').value.trim();
+  const dept = document.getElementById('newTaskDept').value;
+  const priority = document.getElementById('newTaskPriority').value;
+  const assignee = document.getElementById('newTaskAssignee').value.trim();
+  const due = document.getElementById('newTaskDue').value;
+  if (!name || !assignee || !due) return;
+
+  const initials = assignee.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  const card = document.createElement('div');
+  card.className = 'dept-card';
+  card.innerHTML = `
+    <div class="dept-card-top">
+      <span class="dept-name">${dept}</span>
+      <span class="priority-pill" style="${PRIORITY_STYLES[priority]}">${priority}</span>
+    </div>
+    <div class="assignee-row">
+      <div class="mini-avatar" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">${initials}</div>
+      <span class="assignee-name">${assignee}</span>
+    </div>
+    <span class="dept-count">${name} · due ${due}</span>
+  `;
+  document.getElementById('deptGrid').appendChild(card);
+
+  document.getElementById('newTaskName').value = '';
+  document.getElementById('newTaskAssignee').value = '';
+  document.getElementById('newTaskDue').value = '';
+}
+
+// Text/content for each approval action's confirmation modal
+const APPROVAL_MODAL_CONFIG = {
+  approve: {
+    title: '<i class="ti ti-brand-jira" style="color:#185FA5" aria-hidden="true"></i>ยืนยันการอนุมัติ',
+    desc: 'ระบบจะสร้าง <strong>14 Jira tasks</strong> และส่ง email แจ้งเตือน 4 แผนกทันที การกระทำนี้ไม่สามารถยกเลิกได้ ต้องการดำเนินการต่อหรือไม่?',
+    showReason: false,
+    placeholder: '',
+    confirmLabel: 'Approve & send to Jira',
+    confirmClass: 'btn-approve',
+  },
+  reject: {
+    title: '<i class="ti ti-x" style="color:#791F1F" aria-hidden="true"></i>ยืนยันการ Reject',
+    desc: 'กรุณาระบุเหตุผลที่ reject คำขอนี้ — ระบบจะแจ้งเหตุผลนี้ให้ผู้ขอทราบ',
+    showReason: true,
+    placeholder: 'เหตุผลในการ reject...',
+    confirmLabel: 'Reject',
+    confirmClass: 'btn-sec',
+  },
+  changes: {
+    title: '<i class="ti ti-message-circle" style="color:#0C447C" aria-hidden="true"></i>ขอให้แก้ไขเพิ่มเติม',
+    desc: 'ระบุสิ่งที่ต้องการให้แก้ไข — คำขอจะถูกส่งกลับไปยังผู้สร้างเพื่อปรับปรุง',
+    showReason: true,
+    placeholder: 'ระบุสิ่งที่ต้องการให้แก้ไข...',
+    confirmLabel: 'ส่งกลับเพื่อแก้ไข',
+    confirmClass: 'btn-pri',
+  },
+};
+
+let currentApprovalAction = null;
+
+// Open the confirmation modal for an approval action (approve / reject / changes)
+function openApprovalModal(action) {
+  currentApprovalAction = action;
+  const cfg = APPROVAL_MODAL_CONFIG[action];
+
+  document.getElementById('modalTitle').innerHTML = cfg.title;
+  document.getElementById('modalDesc').innerHTML = cfg.desc;
+
+  const reasonInput = document.getElementById('modalReasonInput');
+  reasonInput.style.display = cfg.showReason ? 'block' : 'none';
+  reasonInput.style.borderColor = '';
+  reasonInput.value = '';
+  reasonInput.placeholder = cfg.placeholder;
+
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+  confirmBtn.className = cfg.confirmClass;
+  confirmBtn.innerHTML = cfg.confirmLabel;
+  confirmBtn.disabled = false;
+
+  document.getElementById('approvalModalOverlay').style.display = 'flex';
+}
+
+// Close the modal without applying any change
+function closeApprovalModal() {
+  document.getElementById('approvalModalOverlay').style.display = 'none';
+}
+
+// Validate input, show a brief loading state, then apply the result
+function confirmApprovalAction() {
+  const action = currentApprovalAction;
+  const cfg = APPROVAL_MODAL_CONFIG[action];
+  const reasonInput = document.getElementById('modalReasonInput');
+
+  if (cfg.showReason && !reasonInput.value.trim()) {
+    reasonInput.style.borderColor = '#E24B4A';
+    return;
+  }
+  const reason = reasonInput.value.trim();
+
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+  confirmBtn.disabled = true;
+  confirmBtn.innerHTML = '<span class="btn-spinner"></span>กำลังดำเนินการ...';
+
+  setTimeout(() => {
+    closeApprovalModal();
+    applyApprovalResult(action, reason);
+  }, 1000);
+}
+
+// Escape user-typed text before inserting it as HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Update the banner, sequence tracker, and Jira summary to reflect the outcome
+function applyApprovalResult(action, reason) {
+  const banner = document.getElementById('approvalBanner');
+  const bannerIcon = document.getElementById('approvalBannerIcon');
+  const bannerText = document.getElementById('approvalBannerText');
+
+  if (action === 'approve') {
+    banner.className = 'approval-banner success';
+    bannerIcon.className = 'ti ti-circle-check';
+    bannerIcon.style.color = '#0F6E56';
+    bannerText.innerHTML = '<strong>Approved</strong> — สร้าง 14 Jira tasks และส่ง email แจ้ง 4 แผนกเรียบร้อยแล้ว';
+
+    const circle = document.getElementById('seqStep1Circle');
+    circle.style.background = '#9FE1CB';
+    circle.style.color = '#085041';
+    circle.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+
+    const status = document.getElementById('seqStep1Status');
+    status.textContent = 'กำลังดำเนินการ';
+    status.style.color = '#0F6E56';
+
+    document.getElementById('jiraSummary').innerHTML =
+      '<i class="ti ti-circle-check" style="font-size:13px;margin-right:4px;color:#0F6E56" aria-hidden="true"></i>' +
+      'สร้าง <strong style="color:var(--color-text-primary)">14 Jira tasks</strong> และส่ง email แจ้ง 4 แผนกแล้ว — Phase 1 (Business Analysis) เริ่มดำเนินการแล้ว';
+  } else if (action === 'reject') {
+    banner.className = 'approval-banner error';
+    bannerIcon.className = 'ti ti-x';
+    bannerIcon.style.color = '#A92121';
+    bannerText.innerHTML = '<strong>Rejected</strong> — เหตุผล: ' + escapeHtml(reason);
+  } else if (action === 'changes') {
+    banner.className = 'approval-banner info';
+    bannerIcon.className = 'ti ti-message-circle';
+    bannerIcon.style.color = '#0C447C';
+    bannerText.innerHTML = '<strong>ส่งกลับเพื่อแก้ไขแล้ว</strong> — หมายเหตุ: ' + escapeHtml(reason);
+  }
+
+  document.getElementById('approvalActionBar').style.display = 'none';
+  document.getElementById('approvalResetBar').style.display = 'flex';
+}
+
+// Restore the approval screen to its initial pending state (demo only)
+function resetApprovalDemo() {
+  const banner = document.getElementById('approvalBanner');
+  banner.className = 'approval-banner';
+  const bannerIcon = document.getElementById('approvalBannerIcon');
+  bannerIcon.className = 'ti ti-alert-triangle';
+  bannerIcon.style.color = '#854F0B';
+  document.getElementById('approvalBannerText').innerHTML =
+    'รออนุมัติจาก <strong>คุณ Kanya N.</strong> — AI แนะนำ sequential workflow 4 phase ตรวจสอบและปรับแก้ได้ก่อนกด Approve';
+
+  const circle = document.getElementById('seqStep1Circle');
+  circle.style.background = '#E6F1FB';
+  circle.style.color = '#0C447C';
+  circle.textContent = '1';
+
+  const status = document.getElementById('seqStep1Status');
+  status.textContent = 'เริ่มได้ทันที';
+  status.style.color = '#1D9E75';
+
+  document.getElementById('jiraSummary').innerHTML =
+    '<i class="ti ti-brand-jira" style="font-size:13px;margin-right:4px;color:#185FA5" aria-hidden="true"></i>' +
+    'เมื่อ Approve — ระบบจะสร้าง <strong style="color:var(--color-text-primary)">14 Jira tasks</strong> อัตโนมัติ และส่ง email แจ้ง 4 แผนก พร้อมตั้ง dependency ตาม phase';
+
+  document.getElementById('approvalActionBar').style.display = 'flex';
+  document.getElementById('approvalResetBar').style.display = 'none';
+}
+</script>
