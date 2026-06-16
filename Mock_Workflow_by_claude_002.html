@@ -242,6 +242,34 @@
     .phase-title { font-weight: 700; font-size: 14px; }
     .phase-meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
     .dept-pill { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: var(--violet-soft); color: var(--violet); }
+
+    /* Confirmation Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 2000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-card {
+      background: var(--surface); border-radius: 12px; box-shadow: var(--shadow);
+      width: 460px; max-width: 92vw; overflow: hidden;
+    }
+    .modal-head { padding: 20px 24px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 12px; }
+    .modal-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+    .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .modal-body p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .modal-body textarea { resize: vertical; min-height: 80px; font-size: 13px; width: 100%; }
+    .modal-body textarea.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(163,42,42,0.1); }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 12px; background: var(--surface-soft); }
+    .modal-error-msg { font-size: 11px; color: var(--red); margin-top: -8px; display: none; }
+
+    /* Live sync indicator */
+    @keyframes live-pulse { 0%,100% { opacity:1; } 50% { opacity:0.25; } }
+    .live-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation: live-pulse 1.5s ease infinite; flex-shrink:0; }
+
+    /* Drag-and-drop */
+    .drag-handle { cursor: grab; color: var(--subtle); font-size: 18px; user-select: none; padding: 0 4px; line-height: 1; flex-shrink: 0; }
+    .drag-handle:active { cursor: grabbing; }
+    .main-task-row.drag-over > td { border-top: 3px solid var(--blue) !important; background: var(--blue-soft) !important; }
+    .main-task-row.dragging { opacity: 0.35; }
   </style>
 </head>
 <body>
@@ -295,6 +323,9 @@
   <main class="main">
     <header class="topbar">
       <h1 id="page-title">Dashboard</h1>
+      <div id="live-sync-badge" style="display:none; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--green); background:var(--green-soft); padding:4px 10px; border-radius:99px; border:1px solid rgba(20,121,95,0.2);">
+        <span class="live-dot"></span> LIVE SYNC
+      </div>
       <div style="display:flex; align-items:center; gap:16px;">
         <span class="status-pill blue" id="user-role-badge">Internal Access</span>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -405,8 +436,8 @@
 
           <div id="approver-warning" class="panel hidden" style="background:var(--amber-soft); border-color:var(--amber);">
             <div class="panel-body" style="display:flex; align-items:center; gap:12px; color:var(--amber);">
-              <i class="ti ti-alert-circle" style="font-size:24px;"></i>
-              <p>คุณอยู่ในโหมด <strong>Approver</strong> — หน้าจอนี้สำหรับ Staff สร้างคำขอใหม่เท่านั้น</p>
+              <i class="ti ti-info-circle" style="font-size:24px; flex-shrink:0;"></i>
+              <p>คุณอยู่ในโหมด <strong>Approver</strong> — สามารถสร้างคำขอใหม่ได้ แต่ตามกฎ TSD Rule 2 คุณ<strong>ไม่สามารถอนุมัติคำขอที่คุณสร้างเองได้</strong></p>
             </div>
           </div>
 
@@ -488,6 +519,7 @@
       <!-- SCREEN: APPROVAL QUEUE -->
       <section id="screen-approval" class="screen">
         <div class="content-scroll">
+          <div id="approval-request-detail" class="panel hidden"></div>
           <div class="panel">
             <div class="panel-head">
               <div>
@@ -595,6 +627,33 @@
   </main>
 </div>
 
+<!-- Confirmation / Rejection Modal -->
+<div id="confirm-modal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-icon" id="modal-icon-wrap"></div>
+      <div>
+        <h3 id="modal-title" style="font-size:16px; font-weight:800;"></h3>
+        <p id="modal-subtitle" style="font-size:12px; color:var(--muted); margin-top:4px;"></p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p id="modal-message"></p>
+      <div id="modal-comment-wrap" class="hidden">
+        <label style="font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;">
+          ความคิดเห็น / เหตุผล <span style="color:var(--red);">*</span>
+        </label>
+        <textarea id="modal-comment" style="margin-top:6px;" placeholder="กรุณาระบุเหตุผลก่อนดำเนินการ..."></textarea>
+        <p class="modal-error-msg" id="modal-comment-error">กรุณาระบุเหตุผลก่อนดำเนินการ</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()"><i class="ti ti-x"></i> ยกเลิก</button>
+      <button class="btn btn-primary" id="modal-confirm-btn" onclick="confirmModal()">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // === Shared enums / labels (aligned with prisma/schema.prisma + claude.md section 10) ===
   const DEPARTMENTS = ["BUSINESS_ANALYSIS", "DEVELOPMENT", "QA_TESTING", "REGISTRAR_OPS"];
@@ -634,8 +693,15 @@
 
   let currentUser = null;
   let uploadedFileName = "";
-  let unreadNotifs = 0;
-  let aiConfidence = null; // AIRecommendation.confidenceScore (0-1)
+  let aiConfidence = null;
+
+  let notificationHistory = [];               // synced across windows
+  let unreadCounts = { staff: 0, approver: 0 }; // per-role unread badge
+  let _isApplyingIncoming = false;            // prevents broadcast loop
+  let _lastStateTs = 0;
+
+  // BroadcastChannel for cross-window real-time sync (Chrome/Edge with file:// works fine)
+  const _channel = (() => { try { return new BroadcastChannel('workdistrib_v4'); } catch(e) { return null; } })();
 
   // Shared state simulation
   let sharedWorkflowData = {
@@ -646,6 +712,27 @@
   };
 
   const users = ["Suthida T.", "Piyawat K.", "Natcha W.", "Ananya R.", "Kanya N.", "Somchai P."];
+
+  // AI suggestion data — mirrors sidebar cards; used by addAllTasks and addSubTask auto-parent logic
+  const AI_SUGGESTION_DATA = {
+    'Analysis and Spec': {
+      subTasks: [
+        { name: 'ตรวจสอบเกณฑ์ SEC ใหม่', dept: 'BUSINESS_ANALYSIS', assignee: 'Suthida T.' },
+        { name: 'จัดทำ Functional Spec สำหรับ Ex-date ใหม่', dept: 'BUSINESS_ANALYSIS', assignee: 'Suthida T.' },
+      ]
+    },
+    'Implementation': {
+      subTasks: [
+        { name: 'แก้ไข Logic Ex-date Calculation', dept: 'DEVELOPMENT', assignee: 'Piyawat K.' },
+        { name: 'พัฒนา API คำนวณ Stock Dividend', dept: 'DEVELOPMENT', assignee: 'Piyawat K.' },
+      ]
+    },
+    'Test Plan and UAT': {
+      subTasks: [
+        { name: 'ทดสอบการคำนวณ Stock Dividend', dept: 'QA_TESTING', assignee: 'Natcha W.' },
+      ]
+    }
+  };
 
   function login(role) {
     currentUser = role;
@@ -670,10 +757,11 @@
       nameLabel.innerText = 'สมชาย พ.';
       avatar.innerText = 'SP';
       document.getElementById('approver-warning').classList.remove('hidden');
-      document.getElementById('staff-intake-panel').classList.add('hidden');
-      document.getElementById('staff-plan-panel').classList.add('hidden');
+      document.getElementById('staff-intake-panel').classList.remove('hidden');
+      document.getElementById('staff-plan-panel').classList.remove('hidden');
     }
 
+    updateNotifBadge();
     syncUIWithSharedData();
   }
 
@@ -684,32 +772,10 @@
   }
 
   function addNotification(role, title, msg, color) {
-    // Only count as "unread" if the current user is not the target role
-    if (currentUser !== role) {
-      unreadNotifs++;
-      const badge = document.getElementById('notif-badge');
-      badge.innerText = unreadNotifs;
-      badge.classList.remove('hidden');
-    }
-
-    const feed = document.getElementById('notif-feed');
-    const empty = feed.querySelector('.empty-state');
-    if (empty) empty.remove();
-
-    const notif = document.createElement('div');
-    notif.style.borderLeft = `4px solid var(--${color})`;
-    notif.style.background = '#fff';
-    notif.style.padding = '16px';
-    notif.style.borderRadius = '4px';
-    notif.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
-    notif.innerHTML = `
-      <div style="display:flex; justify-content:space-between;">
-        <strong style="color:var(--${color});">${title}</strong>
-        <span style="font-size:11px; color:var(--muted);">เมื่อสักครู่</span>
-      </div>
-      <p style="font-size:13px; margin-top:8px;">${msg}</p>
-    `;
-    feed.prepend(notif);
+    notificationHistory.unshift({ role, title, msg, color });
+    unreadCounts[role] = (unreadCounts[role] || 0) + 1;
+    updateNotifBadge();
+    rebuildNotificationFeed();
   }
 
   function setScreen(name, btnEl) {
@@ -732,8 +798,9 @@
     document.getElementById('page-title').innerText = titles[name] || '';
 
     if (name === 'notif') {
-      unreadNotifs = 0;
-      document.getElementById('notif-badge').classList.add('hidden');
+      if (currentUser) unreadCounts[currentUser] = 0;
+      updateNotifBadge();
+      broadcastState(); // sync cleared unread to other windows
     }
     if (name === 'dashboard') {
       refreshDashboard();
@@ -808,7 +875,7 @@
         <div class="suggest-item">
           <div class="suggest-header">
             <span>Analysis and Spec</span>
-            <button class="btn-add-sm" onclick="addMainTask('Analysis and Spec')">Add All</button>
+            <button class="btn-add-sm" onclick="addAllTasks('Analysis and Spec')">Add All</button>
           </div>
           <div style="display:grid; gap:6px;">
             <div class="suggest-sub-row">
@@ -826,7 +893,7 @@
         <div class="suggest-item">
           <div class="suggest-header">
             <span>Implementation</span>
-            <button class="btn-add-sm" onclick="addMainTask('Implementation')">Add All</button>
+            <button class="btn-add-sm" onclick="addAllTasks('Implementation')">Add All</button>
           </div>
           <div style="display:grid; gap:6px;">
             <div class="suggest-sub-row">
@@ -844,7 +911,7 @@
         <div class="suggest-item">
           <div class="suggest-header">
             <span>Test Plan and UAT</span>
-            <button class="btn-add-sm" onclick="addMainTask('Test Plan and UAT')">Add All</button>
+            <button class="btn-add-sm" onclick="addAllTasks('Test Plan and UAT')">Add All</button>
           </div>
           <div style="display:grid; gap:6px;">
             <div class="suggest-sub-row">
@@ -859,33 +926,120 @@
     }, 1500);
   }
 
-  function addMainTask(name) {
+  // ── Notification helpers ────────────────────────────────────────────────
+  function updateNotifBadge() {
+    const count = currentUser ? (unreadCounts[currentUser] || 0) : 0;
+    const badge = document.getElementById('notif-badge');
+    if (count > 0) {
+      badge.innerText = count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  function rebuildNotificationFeed() {
+    const feed = document.getElementById('notif-feed');
+    if (!notificationHistory.length) {
+      feed.innerHTML = '<div class="empty-state">ไม่มีการแจ้งเตือนใหม่</div>';
+      return;
+    }
+    feed.innerHTML = notificationHistory.map(n => `
+      <div style="border-left:4px solid var(--${n.color}); background:#fff; padding:16px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+        <div style="display:flex; justify-content:space-between;">
+          <strong style="color:var(--${n.color});">${n.title}</strong>
+          <span style="font-size:11px; color:var(--muted);">เมื่อสักครู่</span>
+        </div>
+        <p style="font-size:13px; margin-top:8px;">${n.msg}</p>
+      </div>
+    `).join('');
+  }
+
+  // ── Real-time cross-window sync ─────────────────────────────────────────
+  function broadcastState() {
+    if (_isApplyingIncoming) return; // avoid echo loop
+    const payload = { sharedWorkflowData, notificationHistory, unreadCounts, aiConfidence, ts: Date.now() };
+    if (_channel) _channel.postMessage(payload);
+    try { localStorage.setItem('wd_shared_state', JSON.stringify(payload)); } catch(e) {}
+  }
+
+  function applyIncomingState(payload) {
+    if (!payload || payload.ts <= _lastStateTs) return;
+    _lastStateTs = payload.ts;
+    _isApplyingIncoming = true;
+    sharedWorkflowData = payload.sharedWorkflowData;
+    aiConfidence       = payload.aiConfidence;
+    notificationHistory = payload.notificationHistory || [];
+    unreadCounts       = payload.unreadCounts || { staff: 0, approver: 0 };
+    rebuildNotificationFeed();
+    updateNotifBadge();
+    syncUIWithSharedData();
+    _isApplyingIncoming = false;
+  }
+
+  if (_channel) _channel.onmessage = e => applyIncomingState(e.data);
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // Restore shared state from localStorage when a new window opens
+    try {
+      const saved = localStorage.getItem('wd_shared_state');
+      if (saved) applyIncomingState(JSON.parse(saved));
+    } catch(e) {}
+    // Show Live badge only when BroadcastChannel is available
+    if (_channel) document.getElementById('live-sync-badge').style.display = 'flex';
+  });
+
+  // ── Core row creation ──────────────────────────────────────────────────
+  function createMainTaskRow(name) {
     const table = document.getElementById('plan-table');
     const empty = document.getElementById('plan-empty');
-    const body = document.getElementById('plan-body');
+    const body  = document.getElementById('plan-body');
     table.classList.remove('hidden');
     empty.classList.add('hidden');
+
     const rowId = 'main-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
     const row = document.createElement('tr');
     row.className = 'main-task-row';
     row.id = rowId;
+    row.draggable = true;
     row.innerHTML = `
       <td colspan="7">
         <div class="main-task-container">
-          <input class="editable-input main-task-title" style="font-weight:800; font-size:14px; color:var(--blue);" value="${name}">
-          <div style="display:flex; gap:8px; align-items:center;">
-            <button class="btn btn-tiny" style="background:var(--blue); color:#fff; border:none;" onclick="addSubTask('${name}', 'New sub-task', 'BUSINESS_ANALYSIS', '${rowId}')">+ Add sub-task</button>
+          <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+            <span class="drag-handle" title="ลากเพื่อเรียงลำดับ">⠿</span>
+            <input class="editable-input main-task-title" style="font-weight:800; font-size:14px; color:var(--blue);" value="${name}">
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+            <button class="btn btn-tiny" style="background:var(--blue); color:#fff; border:none;" onclick="addSubTask(null, 'New sub-task', 'BUSINESS_ANALYSIS', '${rowId}')">+ Add sub-task</button>
             <button class="btn-delete" onclick="deleteMainTask('${rowId}')"><i class="ti ti-trash"></i></button>
           </div>
         </div>
       </td>
     `;
     body.appendChild(row);
+    initDrag(row);
     updateTaskCount();
+    return rowId;
+  }
+
+  // Find existing main task row by title, or create a new one
+  function findOrCreateMainTask(name) {
+    const existing = Array.from(document.querySelectorAll('.main-task-title'))
+      .find(el => el.value === name);
+    if (existing) return existing.closest('tr').id;
+    return createMainTaskRow(name);
+  }
+
+  // Add All: creates parent (if missing) and all its sub-tasks from AI_SUGGESTION_DATA
+  function addAllTasks(mainTaskName) {
+    const data = AI_SUGGESTION_DATA[mainTaskName];
+    if (!data) return;
+    const rowId = findOrCreateMainTask(mainTaskName);
+    data.subTasks.forEach(st => addSubTask(null, st.name, st.dept, rowId, st.assignee));
   }
 
   function addCustomMainTask() {
-    addMainTask('New Main Task');
+    createMainTaskRow('New Main Task');
   }
 
   function deleteMainTask(id) {
@@ -893,7 +1047,7 @@
     if (!row) return;
     let next = row.nextElementSibling;
     while (next && !next.classList.contains('main-task-row')) {
-      let toRemove = next;
+      const toRemove = next;
       next = next.nextElementSibling;
       toRemove.remove();
     }
@@ -901,19 +1055,24 @@
     updateTaskCount();
   }
 
+  // Add a single sub-task. If mainRowId is null, auto-creates parent from mainTaskName.
   function addSubTask(mainTaskName, subTaskName, dept, mainRowId, assignee) {
-    const table = document.getElementById('plan-table');
-    const empty = document.getElementById('plan-empty');
-    const body = document.getElementById('plan-body');
-    const btnSubmit = document.getElementById('btn-submit');
+    const table    = document.getElementById('plan-table');
+    const empty    = document.getElementById('plan-empty');
+    const body     = document.getElementById('plan-body');
     table.classList.remove('hidden');
     empty.classList.add('hidden');
-    btnSubmit.disabled = false;
+
+    // Auto-create parent main task when only adding a single sub-task from the sidebar
+    let targetRowId = mainRowId;
+    if (!targetRowId && mainTaskName) {
+      targetRowId = findOrCreateMainTask(mainTaskName);
+    }
 
     const row = document.createElement('tr');
     row.className = 'sub-task-row';
-    const deptOptions = DEPARTMENTS.map(d => `<option value="${d}" ${dept === d ? 'selected' : ''}>${DEPT_TH[d]}</option>`).join('');
-    const userOptions = users.map(u => `<option ${assignee === u ? 'selected' : ''}>${u}</option>`).join('');
+    const deptOptions     = DEPARTMENTS.map(d => `<option value="${d}" ${dept === d ? 'selected' : ''}>${DEPT_TH[d]}</option>`).join('');
+    const userOptions     = users.map(u => `<option ${assignee === u ? 'selected' : ''}>${u}</option>`).join('');
     const priorityOptions = Object.keys(PRIORITY_TH).map(p => `<option value="${p}" ${p === 'HIGH' ? 'selected' : ''}>${PRIORITY_TH[p]}</option>`).join('');
 
     row.innerHTML = `
@@ -926,15 +1085,20 @@
       <td style="text-align:center;"><button class="btn-delete" onclick="this.closest('tr').remove(); updateTaskCount();"><i class="ti ti-trash"></i></button></td>
     `;
 
-    if (mainRowId) {
-      const mainRow = document.getElementById(mainRowId);
-      let lastRow = mainRow;
-      let nextRow = mainRow.nextElementSibling;
-      while (nextRow && !nextRow.classList.contains('main-task-row')) {
-        lastRow = nextRow;
-        nextRow = nextRow.nextElementSibling;
+    if (targetRowId) {
+      const mainRow = document.getElementById(targetRowId);
+      if (mainRow) {
+        // Insert after the last sub-task of this group
+        let lastRow = mainRow;
+        let nextRow = mainRow.nextElementSibling;
+        while (nextRow && !nextRow.classList.contains('main-task-row')) {
+          lastRow = nextRow;
+          nextRow = nextRow.nextElementSibling;
+        }
+        lastRow.after(row);
+      } else {
+        body.appendChild(row);
       }
-      lastRow.after(row);
     } else {
       body.appendChild(row);
     }
@@ -943,7 +1107,57 @@
 
   function updateTaskCount() {
     const count = document.querySelectorAll('.sub-task-row').length;
-    document.getElementById('task-count-pill').innerText = count + " tasks";
+    document.getElementById('task-count-pill').innerText = count + ' tasks';
+    document.getElementById('btn-submit').disabled = count === 0;
+  }
+
+  // ── Drag-and-drop for main task groups ─────────────────────────────────
+  let dragSrcId = null;
+
+  function initDrag(mainRow) {
+    mainRow.addEventListener('dragstart', e => {
+      // Let input/select handle their own native drag (text selection, etc.)
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) { e.preventDefault(); return; }
+      dragSrcId = mainRow.id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => mainRow.classList.add('dragging'), 0);
+    });
+
+    mainRow.addEventListener('dragend', () => {
+      mainRow.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+    });
+
+    mainRow.addEventListener('dragover', e => {
+      if (!dragSrcId || mainRow.id === dragSrcId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+      mainRow.classList.add('drag-over');
+    });
+
+    mainRow.addEventListener('dragleave', e => {
+      if (!mainRow.contains(e.relatedTarget)) mainRow.classList.remove('drag-over');
+    });
+
+    mainRow.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragSrcId || mainRow.id === dragSrcId) return;
+      const srcRow = document.getElementById(dragSrcId);
+      if (!srcRow) return;
+
+      // Collect the source group (main row + all its sub-task rows)
+      const group = [srcRow];
+      let next = srcRow.nextElementSibling;
+      while (next && !next.classList.contains('main-task-row')) {
+        group.push(next);
+        next = next.nextElementSibling;
+      }
+
+      // Re-insert group before the drop target
+      group.forEach(r => mainRow.before(r));
+      mainRow.classList.remove('drag-over');
+    });
   }
 
   // === Sequential Phase Tracker (TSD Rule 4) ===
@@ -1030,6 +1244,7 @@
       document.getElementById('sum-risk').innerText = sharedWorkflowData.stats.risk;
       document.getElementById('sum-conf').innerText = aiConfidence !== null ? Math.round(aiConfidence * 100) + '%' : '--';
 
+      renderApprovalDetail();
       renderPhaseTracker(sharedWorkflowData.phases);
 
       const reqStatus = getRequestStatus();
@@ -1050,6 +1265,7 @@
     }
 
     refreshDashboard();
+    broadcastState(); // push state to other open windows
   }
 
   function submitPlan() {
@@ -1091,46 +1307,246 @@
     const riskCount = Array.from(document.querySelectorAll('.sub-task-priority'))
       .filter(s => s.value === 'CRITICAL' || s.value === 'HIGH').length;
 
-    sharedWorkflowData = {
-      submitted: true,
-      status: 'pending',
-      phases,
-      stats: {
-        tasks: subTaskRows.length,
-        main: mainTaskRows.length,
-        risk: riskCount
+    // Capture full task list for Approver detail view
+    const tasks = [];
+    mainTaskRows.forEach(mt => {
+      tasks.push({ type: 'main', title: mt.querySelector('.main-task-title').value });
+      let next = mt.nextElementSibling;
+      while (next && !next.classList.contains('main-task-row')) {
+        tasks.push({
+          type:     'sub',
+          name:     next.querySelector('.sub-task-name').value,
+          dept:     next.querySelector('.sub-task-dept').value,
+          assignee: next.querySelector('.sub-task-assignee').value,
+          priority: next.querySelector('.sub-task-priority').value,
+          due:      next.querySelector('.sub-task-due').value,
+          dep:      next.querySelector('.sub-task-dep').value,
+        });
+        next = next.nextElementSibling;
       }
+    });
+
+    sharedWorkflowData = {
+      submitted:       true,
+      status:          'pending',
+      phases,
+      stats:           { tasks: subTaskRows.length, main: mainTaskRows.length, risk: riskCount },
+      tasks,
+      requirementText: document.getElementById('text-input').value,
+      uploadedFile:    uploadedFileName || null,
+      aiConfidencePct: aiConfidence !== null ? Math.round(aiConfidence * 100) : null,
     };
 
-    addNotification('approver', 'New Approval Request', 'กัญญา น. ได้ส่งแผนงาน "Corporate Action" มาให้คุณตรวจสอบ', 'blue');
-    alert("ส่งคำขอเรียบร้อย! ระบบแจ้งเตือนไปยังผู้รับผิดชอบ (สมชาย พ.) แล้ว");
+    addNotification('approver', 'New Approval Request', `${currentUser === 'approver' ? 'สมชาย พ.' : 'กัญญา น.'} ได้ส่งแผนงาน "Corporate Action" มาให้ตรวจสอบ`, 'blue');
+    addNotification('staff', 'ส่งคำขอสำเร็จ', 'ระบบแจ้งเตือนไปยัง Approver เรียบร้อยแล้ว กรุณารอการอนุมัติ', 'blue');
     setScreen('approval');
     syncUIWithSharedData();
   }
 
-  function approveFinal() {
-    sharedWorkflowData.status = 'approved';
-    if (sharedWorkflowData.phases.length) {
-      sharedWorkflowData.phases[0].status = 'IN_PROGRESS';
+  // ── Approval request detail panel ───────────────────────────────────────
+  function renderApprovalDetail() {
+    const container = document.getElementById('approval-request-detail');
+    if (!sharedWorkflowData.submitted || !sharedWorkflowData.tasks) {
+      container.classList.add('hidden');
+      return;
     }
-    addNotification('staff', 'Plan Approved!', 'สมชาย พ. ได้อนุมัติแผนงานของคุณแล้ว ระบบกำลังสร้าง Jira Tasks สำหรับ Phase 1', 'green');
-    alert("อนุมัติเรียบร้อย! แจ้งเตือนถูกส่งกลับไปยัง กัญญา น. และสร้าง Jira Epic สำหรับ Phase 1");
-    syncUIWithSharedData();
-    setScreen('notif');
+    container.classList.remove('hidden');
+
+    // Build read-only task rows
+    const taskRowsHtml = sharedWorkflowData.tasks.map(t => {
+      if (t.type === 'main') {
+        return `<tr>
+          <td colspan="6" style="background:#eef3f8; font-weight:800; padding:10px 16px; color:var(--blue); border-top:2px solid var(--line-strong); border-bottom:1px solid var(--line-strong);">
+            ${t.title}
+          </td>
+        </tr>`;
+      }
+      const priColor = { CRITICAL: 'red', HIGH: 'amber', MEDIUM: 'blue', LOW: 'gray' }[t.priority] || 'gray';
+      const dueLabel = t.due ? new Date(t.due).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : '-';
+      return `<tr>
+        <td style="padding-left:28px; color:var(--text);">↳ ${t.name}</td>
+        <td>${DEPT_TH[t.dept] || t.dept}</td>
+        <td>${t.assignee}</td>
+        <td><span class="status-pill ${priColor}">${PRIORITY_TH[t.priority] || t.priority}</span></td>
+        <td>${dueLabel}</td>
+        <td style="color:var(--muted);">${t.dep || '-'}</td>
+      </tr>`;
+    }).join('');
+
+
+    container.innerHTML = `
+      <div class="panel-head">
+        <div>
+          <p class="panel-title">รายละเอียดคำขอที่ส่งมาเพื่ออนุมัติ</p>
+          <p class="panel-sub">ตรวจสอบข้อมูลทั้งหมดก่อนอนุมัติหรือปฏิเสธ</p>
+        </div>
+        <span class="status-pill amber"><i class="ti ti-clock"></i> รออนุมัติ</span>
+      </div>
+      <div class="panel-body" style="display:flex; flex-direction:column; gap:20px;">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div>
+            <p class="ai-section-label" style="margin-bottom:6px;">Requirement / ความต้องการ</p>
+            <div class="ai-bubble" style="white-space:pre-wrap; max-height:120px; overflow-y:auto;">${sharedWorkflowData.requirementText || '-'}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <p class="ai-section-label" style="margin-bottom:6px;">ไฟล์แนบ</p>
+              <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                ${sharedWorkflowData.uploadedFile
+                  ? `<i class="ti ti-file-text" style="color:var(--blue);"></i> <span>${sharedWorkflowData.uploadedFile}</span>`
+                  : `<span style="color:var(--subtle);">ไม่มีไฟล์แนบ</span>`}
+              </div>
+            </div>
+            <div>
+              <p class="ai-section-label" style="margin-bottom:6px;">สรุปแผนงาน</p>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <span class="status-pill blue">${sharedWorkflowData.stats.main} main tasks</span>
+                <span class="status-pill violet">${sharedWorkflowData.stats.tasks} sub-tasks</span>
+                ${sharedWorkflowData.stats.risk > 0 ? `<span class="status-pill red">${sharedWorkflowData.stats.risk} high risk</span>` : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="ai-section-label" style="margin-bottom:8px;">รายการงานทั้งหมด</p>
+          <table style="table-layout:fixed;">
+            <thead>
+              <tr>
+                <th style="width:28%">Task / Sub-task</th>
+                <th style="width:18%">Department</th>
+                <th style="width:15%">Assignee</th>
+                <th style="width:13%">Priority</th>
+                <th style="width:13%">Due Date</th>
+                <th style="width:13%">Dependency</th>
+              </tr>
+            </thead>
+            <tbody>${taskRowsHtml}</tbody>
+          </table>
+        </div>
+
+      </div>
+    `;
+  }
+
+  // ── Custom confirmation modal ────────────────────────────────────────────
+  let _modalCallback = null;
+
+  function showModal({ title, subtitle = '', message, iconClass, iconBg, iconColor, confirmLabel, confirmBg, requireComment = false }) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-subtitle').innerText = subtitle;
+    document.getElementById('modal-message').innerText = message;
+
+    const iconWrap = document.getElementById('modal-icon-wrap');
+    iconWrap.style.background = iconBg;
+    iconWrap.style.color = iconColor;
+    iconWrap.innerHTML = `<i class="${iconClass}"></i>`;
+
+    const commentWrap = document.getElementById('modal-comment-wrap');
+    const commentBox  = document.getElementById('modal-comment');
+    const commentErr  = document.getElementById('modal-comment-error');
+    commentWrap.classList.toggle('hidden', !requireComment);
+    commentBox.value = '';
+    commentBox.classList.remove('error');
+    commentErr.style.display = 'none';
+
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    confirmBtn.innerText = confirmLabel || 'ยืนยัน';
+    confirmBtn.style.background = confirmBg || 'var(--blue)';
+    confirmBtn.style.borderColor = confirmBg || 'var(--blue)';
+
+    document.getElementById('confirm-modal').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('confirm-modal').classList.add('hidden');
+    _modalCallback = null;
+  }
+
+  function confirmModal() {
+    const commentBox = document.getElementById('modal-comment');
+    const commentErr = document.getElementById('modal-comment-error');
+    const requireComment = !document.getElementById('modal-comment-wrap').classList.contains('hidden');
+
+    if (requireComment && !commentBox.value.trim()) {
+      commentBox.classList.add('error');
+      commentErr.style.display = 'block';
+      commentBox.focus();
+      return;
+    }
+
+    if (_modalCallback) _modalCallback(commentBox.value.trim());
+    closeModal();
+  }
+
+  // Close modal when clicking outside the card
+  document.getElementById('confirm-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('confirm-modal')) closeModal();
+  });
+
+  // ── Approve / Reject actions with confirmation ───────────────────────────
+  function approveFinal() {
+    showModal({
+      title:        'ยืนยันการอนุมัติ',
+      subtitle:     'การดำเนินการนี้ไม่สามารถยกเลิกได้',
+      message:      'เมื่ออนุมัติ ระบบจะสร้าง Jira Tasks สำหรับทุก Phase ทันที และส่งอีเมลแจ้งเตือนไปยังแผนกที่เกี่ยวข้อง คุณแน่ใจหรือไม่?',
+      iconClass:    'ti ti-circle-check',
+      iconBg:       'var(--green-soft)',
+      iconColor:    'var(--green)',
+      confirmLabel: 'อนุมัติ',
+      confirmBg:    'var(--green)',
+      requireComment: false,
+    });
+    _modalCallback = () => {
+      sharedWorkflowData.status = 'approved';
+      if (sharedWorkflowData.phases.length) sharedWorkflowData.phases[0].status = 'IN_PROGRESS';
+      addNotification('staff', 'Plan Approved!', 'สมชาย พ. ได้อนุมัติแผนงานของคุณแล้ว ระบบกำลังสร้าง Jira Tasks สำหรับ Phase 1', 'green');
+      syncUIWithSharedData();
+      setScreen('notif');
+    };
   }
 
   function approverAction(type) {
     if (type === 'reject') {
-      sharedWorkflowData.status = 'rejected';
-      addNotification('staff', 'Action Required', 'สมชาย พ. ได้ปฏิเสธแผนงานของคุณ โปรดตรวจสอบเหตุผลและแก้ไขใหม่', 'red');
-      alert("ปฏิเสธแผนงานเรียบร้อยแล้ว");
+      showModal({
+        title:          'ยืนยันการปฏิเสธ',
+        subtitle:       'แผนงานจะถูกส่งกลับไปยังผู้สร้าง',
+        message:        'กรุณาระบุเหตุผลที่ชัดเจนเพื่อให้ผู้สร้างสามารถแก้ไขได้อย่างถูกต้อง',
+        iconClass:      'ti ti-circle-x',
+        iconBg:         'var(--red-soft)',
+        iconColor:      'var(--red)',
+        confirmLabel:   'ปฏิเสธ',
+        confirmBg:      'var(--red)',
+        requireComment: true,
+      });
+      _modalCallback = (comment) => {
+        sharedWorkflowData.status = 'rejected';
+        addNotification('staff', 'Action Required',
+          `สมชาย พ. ปฏิเสธแผนงาน${comment ? ` — "${comment}"` : ''} โปรดแก้ไขและส่งใหม่`, 'red');
+        syncUIWithSharedData();
+        setScreen('notif');
+      };
     } else {
-      sharedWorkflowData.status = 'changes_requested';
-      addNotification('staff', 'Action Required', 'สมชาย พ. ขอให้แก้ไขเพิ่มเติมในแผนงานของคุณ โปรดตรวจสอบ', 'amber');
-      alert("ส่งคำขอแก้ไขเรียบร้อยแล้ว");
+      showModal({
+        title:          'ขอให้แก้ไขเพิ่มเติม',
+        subtitle:       'แผนงานจะถูกส่งกลับในสถานะ Draft',
+        message:        'กรุณาระบุรายละเอียดที่ต้องการให้ปรับปรุง เพื่อให้ผู้สร้างดำเนินการได้อย่างถูกต้อง',
+        iconClass:      'ti ti-edit',
+        iconBg:         'var(--amber-soft)',
+        iconColor:      'var(--amber)',
+        confirmLabel:   'ส่งคำขอแก้ไข',
+        confirmBg:      'var(--amber)',
+        requireComment: true,
+      });
+      _modalCallback = (comment) => {
+        sharedWorkflowData.status = 'changes_requested';
+        addNotification('staff', 'Action Required',
+          `สมชาย พ. ขอให้แก้ไข${comment ? ` — "${comment}"` : ''} โปรดตรวจสอบและส่งใหม่`, 'amber');
+        syncUIWithSharedData();
+        setScreen('notif');
+      };
     }
-    syncUIWithSharedData();
-    setScreen('notif');
   }
 
   // === Dashboard (app/page.tsx equivalent) ===

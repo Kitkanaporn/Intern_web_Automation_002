@@ -8,14 +8,14 @@
 
 ## 1. ที่มาของโครงการ (Background)
 
-ฝ่าย Depository & Registrar เป็นหน่วยงานที่รับ requirement จาก client/ลูกค้าในหลากหลายรูปแบบ เช่น
+ฝ่าย Depository & Registrar เป็นหน่วยงานที่รับ requirement จาก client/ลูกค้าในหลากหลายรูปแบบ 
+<!--เช่น
 
 - การเปลี่ยนแปลงตามกฎระเบียบ (Regulatory Change)
 - การพัฒนาระบบใหม่ (System Development)
 - การสนับสนุน UAT (UAT Support)
 - การย้ายข้อมูล (Data Migration)
-- การจัดทำเอกสาร (Documentation)
-
+- การจัดทำเอกสาร (Documentation) -->
 แต่ละ requirement ที่เข้ามา จะต้องถูก **วิเคราะห์และกระจายงาน (workload distribution)** ไปยังแผนกที่เกี่ยวข้อง ได้แก่ Business Analysis, Development, QA & Testing และ Registrar Operations ซึ่งในหลายกรณีงานของแผนกต่าง ๆ มีลำดับก่อน-หลังที่ชัดเจน (sequential phase) เช่น BA ต้องวิเคราะห์และส่งสเปคก่อน Dev จึงเริ่มพัฒนาได้ และ Dev ต้องเสร็จก่อน QA จึงเริ่มทดสอบได้
 
 ---
@@ -105,9 +105,9 @@ Mockup ล่าสุด (`workflow_by_claude_002.html`) ครอบคลุ�
 
 ## 8. ขั้นตอนถัดไป (Next Steps)
 
-1. รวบรวม feedback จากการนำเสนอ Mockup นี้ เพื่อสรุปแนวทาง UI/UX ที่จะใช้จริง
+1. รวบรวม feedback จากการนำเสนอ Mockup นี้ เพื่อสรุปแนวทาง UI/UX ที่จะใช้จริง และ feature เพิ่มเติม
 2. แปลง Mockup เป็น Functional Requirements (FR) ตาม format มาตรฐาน
-3. เริ่มพัฒนาตามแผน Sprint 8 สัปดาห์ (Next.js 14 + TypeScript + Prisma + Gemini API)
+3. เริ่มพัฒนาตามแผน Sprint 6 สัปดาห์ (Next.js 14 + TypeScript + Prisma + Gemini API)
    - Week 1-2: Schema, Auth, Route Handler พื้นฐาน, AI sidebar (SSE)
-   - Week 3-5: Approval flow, Jira integration, Email notification, Frontend pages
-   - Week 6-8: End-to-end test, bug fix, presentation รอบสุดท้าย
+   - Week 3-4: Approval flow, Jira integration, Email notification, Frontend pages
+   - Week 5-6: End-to-end test, bug fix, presentation รอบสุดท้าย
