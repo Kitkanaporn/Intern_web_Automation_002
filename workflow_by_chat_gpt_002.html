@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorkDistrib Interactive Prototype</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --brand: #185fa5;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #475569;
+      --tertiary: #94a3b8;
+      --pending: #f59e0b;
+      --approved: #2563eb;
+      --progress: #7c3aed;
+      --completed: #10b981;
+      --rejected: #ef4444;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: Inter, Sarabun, "Segoe UI", Arial, sans-serif; font-size: 14px; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { height: 48px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+    .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; }
+    .user-profile { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.2); display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+
+    .layout { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+    .sidebar { width: 64px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 16px 0; }
+    .nav-item { width: 40px; height: 40px; border: 0; border-radius: var(--radius); background: transparent; color: var(--tertiary); display: grid; place-items: center; transition: .16s ease; }
+    .nav-item i { font-size: 24px; }
+    .nav-item:hover, .nav-item.active { background: #eef2ff; color: var(--brand); }
+
+    .screen-container { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .screen { display: none; width: 100%; height: 100%; flex-direction: column; }
+    .screen.active { display: flex; }
+    .screen-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .screen-title { font-size: 18px; font-weight: 700; }
+    .screen-subtitle { color: var(--tertiary); font-size: 13px; margin-top: 3px; }
+    .screen-content { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+    .main-col { flex: 1; overflow: auto; padding: 24px; }
+    .ai-sidebar { width: 320px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+    .ai-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; }
+    .ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--completed); }
+    .ai-body { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .ai-bubble { background: var(--surface-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px; line-height: 1.55; color: var(--muted); font-size: 13px; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .section-label { display: block; font-size: 12px; font-weight: 800; color: var(--tertiary); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+    .input-group { margin-bottom: 16px; }
+    .input-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    .input-field, .textarea-field, select { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; outline: none; background: #fff; color: var(--text); }
+    .textarea-field { min-height: 104px; resize: vertical; line-height: 1.5; }
+    .input-field:focus, .textarea-field:focus, select:focus { border-color: var(--brand); }
+
+    .btn { border: 0; border-radius: var(--radius); padding: 10px 16px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: .16s ease; }
+    .btn-primary { background: var(--brand); color: #fff; }
+    .btn-secondary { background: #fff; color: var(--muted); border: 1px solid var(--border); }
+    .btn-success { background: var(--completed); color: #fff; }
+    .btn-danger { background: var(--rejected); color: #fff; }
+    .btn-small { padding: 6px 9px; font-size: 12px; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .badge { display: inline-flex; align-items: center; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 800; }
+    .badge-draft { background: #f1f5f9; color: #475569; }
+    .badge-pending { background: #fffbeb; color: #b45309; }
+    .badge-approved { background: #eff6ff; color: #1d4ed8; }
+    .badge-progress { background: #f5f3ff; color: #6d28d9; }
+    .badge-completed { background: #f0fdf4; color: #15803d; }
+    .badge-rejected { background: #fef2f2; color: #b91c1c; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .hierarchy { border: 1px solid var(--border); border-radius: 8px; background: #fff; overflow: hidden; }
+    .main-task { border-bottom: 1px solid var(--border); }
+    .main-task:last-child { border-bottom: 0; }
+    .main-task-head { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface-soft); border-bottom: 1px solid var(--border); }
+    .main-title { font-weight: 800; flex: 1; }
+    .sub-list { background: #fff; }
+    .sub-task { display: grid; grid-template-columns: 24px 1fr 135px 112px 112px 78px; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f1f5f9; }
+    .sub-task:last-child { border-bottom: 0; }
+    .sub-task.rejected { background: #fff1f2; opacity: .78; }
+    .sub-task.rejected input, .sub-task.rejected select { color: var(--tertiary); text-decoration: line-through; }
+    .sub-title { border: 0; outline: none; width: 100%; color: var(--text); background: transparent; }
+    .sub-meta { font-size: 12px; color: var(--tertiary); }
+    .empty-state { color: var(--tertiary); padding: 14px 16px; font-size: 13px; }
+
+    .timeline { display: flex; flex-direction: column; }
+    .timeline-item { display: flex; gap: 16px; position: relative; }
+    .timeline-marker { width: 24px; display: flex; flex-direction: column; align-items: center; }
+    .timeline-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; background: var(--progress); z-index: 1; }
+    .timeline-line { width: 2px; flex: 1; background: var(--border); margin: 4px 0; }
+    .timeline-content { flex: 1; padding-bottom: 22px; }
+    .timeline-title { font-weight: 800; margin-bottom: 4px; }
+    .timeline-meta { color: var(--tertiary); font-size: 12px; line-height: 1.45; }
+
+    .notif-item { padding: 16px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; background: #fff; }
+    .notif-item.unread { background: #f0f7ff; border-left: 4px solid var(--brand); }
+    .notif-icon { width: 36px; height: 36px; border-radius: 50%; background: #eef2ff; color: var(--brand); display: grid; place-items: center; flex: 0 0 auto; }
+    .notif-title { font-weight: 800; margin-bottom: 4px; }
+    .notif-text { color: var(--muted); font-size: 13px; margin-bottom: 4px; line-height: 1.45; }
+    .notif-time { color: var(--tertiary); font-size: 11px; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: none; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal-card { background: #fff; border-radius: 12px; width: min(440px, 100%); padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,.14); }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+    .modal-desc { color: var(--muted); line-height: 1.5; margin-bottom: 16px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .gap-2 { gap: 8px; }
+    .justify-end { justify-content: flex-end; }
+    .items-center { align-items: center; }
+    .mt-4 { margin-top: 16px; }
+
+    @media (max-width: 1040px) {
+      .ai-sidebar { display: none; }
+      .sub-task { grid-template-columns: 24px 1fr; }
+      .sub-task > *:nth-child(n+3) { grid-column: 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="logo"><i class="ti ti-layout-distribute-horizontal"></i><span>WorkDistrib</span></div>
+      <div class="user-profile">
+        <i class="ti ti-bell"></i>
+        <span>Kanya N.</span>
+        <div class="avatar">KN</div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar" aria-label="Main navigation">
+        <button class="nav-item active" data-screen="request" title="New request"><i class="ti ti-file-plus"></i></button>
+        <button class="nav-item" data-screen="approval" title="Approval"><i class="ti ti-checklist"></i></button>
+        <button class="nav-item" data-screen="jira" title="Jira"><i class="ti ti-brand-jira"></i></button>
+        <button class="nav-item" data-screen="notifications" title="Notifications"><i class="ti ti-bell"></i></button>
+        <button class="nav-item" style="margin-top:auto" title="Settings"><i class="ti ti-settings"></i></button>
+      </nav>
+
+      <main class="screen-container">
+        <section id="screen-request" class="screen active">
+          <div class="screen-header">
+            <div>
+              <h1 class="screen-title">Create New Request</h1>
+              <p class="screen-subtitle">Record client requirement, let AI draft the workload hierarchy, then adjust main tasks and sub-tasks manually.</p>
+            </div>
+            <span class="badge badge-draft" id="requestStatus">Draft</span>
+          </div>
+          <div class="screen-content">
+            <div class="main-col">
+              <div class="card">
+                <span class="section-label">Request Details</span>
+                <div class="input-group">
+                  <label class="input-label" for="requestName">Project / client name</label>
+                  <input class="input-field" id="requestName" value="Corporate Action: Stock Dividend">
+                </div>
+                <div class="input-group">
+                  <label class="input-label" for="requestText">Client requirement</label>
+                  <textarea class="textarea-field" id="requestText">Client needs a Corporate Action system enhancement for stock dividend processing. The system must support a new ex-date calculation rule from a recent SEC circular, include BA specification, development, QA/UAT, registrar operation readiness, Jira task creation, and email notification to each responsible team.</textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="badge badge-draft">Regulatory change</span>
+                  <span class="badge badge-draft">System development</span>
+                  <span style="margin-left:auto"></span>
+                  <button class="btn btn-primary" id="analyzeBtn"><i class="ti ti-sparkles"></i>Save & Analyze</button>
+                </div>
+              </div>
+
+              <div class="card" id="distributionCard" style="opacity:.55">
+                <div class="toolbar">
+                  <span class="section-label" style="margin-bottom:0">Workload Hierarchy</span>
+                  <button class="btn btn-secondary btn-small" id="addMainBtn"><i class="ti ti-plus"></i>Add main task</button>
+                </div>
+                <div class="hierarchy" id="hierarchy"></div>
+              </div>
+
+              <div class="flex justify-end gap-2 mt-4">
+                <button class="btn btn-secondary" id="clearBtn">Clear</button>
+                <button class="btn btn-primary" id="submitBtn" disabled>Submit for Approval</button>
+              </div>
+            </div>
+
+            <aside class="ai-sidebar">
+              <div class="ai-header"><span class="ai-dot" id="aiDot"></span><span>AI Guide</span><i class="ti ti-sparkles" style="margin-left:auto;color:var(--completed)"></i></div>
+              <div class="ai-body" id="aiBody">
+                <div class="ai-bubble" style="text-align:center;padding:34px 18px">
+                  <i class="ti ti-info-circle" style="display:block;font-size:32px;margin-bottom:12px;color:var(--tertiary)"></i>
+                  Click <strong>Save & Analyze</strong> to generate suggested main tasks and sub-tasks.
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="screen-approval" class="screen">
+          <div class="screen-header">
+            <div>
+              <h1 class="screen-title">Approval & Review</h1>
+              <p class="screen-subtitle">Confirm parent tasks and active sub-tasks before Jira creation.</p>
+            </div>
+            <span class="badge badge-pending" id="approvalStatus">Waiting for submission</span>
+          </div>
+          <div class="screen-content">
+            <div class="main-col">
+              <div class="card" style="background:#fffbeb;border-color:#fde68a">
+                <div class="flex items-center gap-2">
+                  <i class="ti ti-alert-circle" style="color:#b45309"></i>
+                  <span style="color:#b45309;font-size:13px">Human approval is required before Jira tasks and assignment emails are created.</span>
+                </div>
+              </div>
+              <div class="card">
+                <div class="toolbar">
+                  <span class="section-label" style="margin-bottom:0">Sequential Main Tasks</span>
+                  <span class="badge badge-approved" id="approvalCount">0 main / 0 sub</span>
+                </div>
+                <div class="timeline" id="approvalTimeline"></div>
+              </div>
+              <div class="card" style="background:var(--surface-soft)">
+                <div class="flex items-center gap-2" style="color:var(--brand);font-weight:800"><i class="ti ti-brand-jira"></i>Jira Structure Info</div>
+                <p style="font-size:13px;margin-top:8px;color:var(--muted)" id="jiraInfo">Approve to create parent Jira tasks and sub-tasks from the active workload hierarchy.</p>
+              </div>
+              <div class="flex justify-end gap-2">
+                <button class="btn btn-secondary" id="requestChangesBtn" disabled>Request Changes</button>
+                <button class="btn btn-danger" id="rejectRequestBtn" disabled>Reject</button>
+                <button class="btn btn-primary" id="approveBtn" disabled>Approve & Send to Jira</button>
+              </div>
+            </div>
+            <aside class="ai-sidebar">
+              <div class="ai-header"><span class="ai-dot"></span><span>AI Summary</span></div>
+              <div class="ai-body">
+                <div class="ai-bubble" id="approvalAi">Submit a workload plan to see approval guidance.</div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="screen-jira" class="screen">
+          <div class="screen-header">
+            <div>
+              <h1 class="screen-title">Jira Simulation</h1>
+              <p class="screen-subtitle">Parent task and sub-task creation preview.</p>
+            </div>
+            <span class="badge badge-draft" id="jiraStatus">Not created</span>
+          </div>
+          <div class="screen-content">
+            <div class="main-col">
+              <div class="card">
+                <span class="section-label">Created Jira Issues</span>
+                <div id="jiraFeed"></div>
+              </div>
+              <div class="flex justify-end">
+                <button class="btn btn-secondary" id="completePhaseBtn" disabled><i class="ti ti-player-play"></i>Complete current phase</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="screen-notifications" class="screen">
+          <div class="screen-header">
+            <div>
+              <h1 class="screen-title">Notifications</h1>
+              <p class="screen-subtitle">Approval, Jira, email, and dependency events.</p>
+            </div>
+            <span class="badge badge-approved" id="notifCount">0 notifications</span>
+          </div>
+          <div class="screen-content">
+            <div class="main-col">
+              <div class="card" style="padding:0;overflow:hidden" id="notificationFeed"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal-card">
+      <p class="modal-title" id="modalTitle">Confirm action</p>
+      <p class="modal-desc" id="modalDesc">Please confirm.</p>
+      <div class="input-group hidden" id="reasonGroup">
+        <label class="input-label" for="reasonText">Reason</label>
+        <textarea class="textarea-field" id="reasonText" placeholder="Add feedback for the requester"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelModal">Cancel</button>
+        <button class="btn btn-primary" id="confirmModal">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      mainTasks: [],
+      tasks: [],
+      notifications: [],
+      submitted: false,
+      approved: false,
+      currentPhase: 1,
+      modalAction: null
+    };
+
+    const baseMainTasks = [
+      "Regulatory analysis and requirement design",
+      "System implementation",
+      "Testing and UAT readiness",
+      "Registrar operation and go-live"
+    ];
+
+    const baseTasks = [
+      { mainTask: baseMainTasks[0], name: "Confirm regulatory interpretation", department: "Compliance", assignee: "Kanya N.", priority: "High", due: "2026-01-18", dependency: "Start" },
+      { mainTask: baseMainTasks[0], name: "Analyze SEC circular and business rule", department: "Business Analysis", assignee: "Suthida T.", priority: "High", due: "2026-01-20", dependency: "Regulatory confirmation" },
+      { mainTask: baseMainTasks[0], name: "Prepare requirement specification", department: "Business Analysis", assignee: "Suthida T.", priority: "High", due: "2026-01-23", dependency: "Business rule analysis" },
+      { mainTask: baseMainTasks[1], name: "Implement ex-date calculation change", department: "Development", assignee: "Piyawat K.", priority: "High", due: "2026-02-10", dependency: "BA approval" },
+      { mainTask: baseMainTasks[2], name: "Create QA test cases and UAT script", department: "QA & Testing", assignee: "Natcha W.", priority: "Medium", due: "2026-02-20", dependency: "Development complete" },
+      { mainTask: baseMainTasks[3], name: "Prepare registrar operation checklist", department: "Registrar Ops", assignee: "Ananya R.", priority: "Medium", due: "2026-03-01", dependency: "UAT sign-off" }
+    ];
+
+    const departments = ["Compliance", "Business Analysis", "Development", "QA & Testing", "Registrar Ops", "Client Service"];
+    const assignees = ["Kanya N.", "Suthida T.", "Piyawat K.", "Natcha W.", "Ananya R.", "Somchai P."];
+    const priorities = ["Critical", "High", "Medium", "Low"];
+    const $ = id => document.getElementById(id);
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value || "";
+      return div.innerHTML;
+    }
+
+    function setScreen(name) {
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
+      $("screen-" + name).classList.add("active");
+      document.querySelectorAll(".nav-item").forEach(btn => btn.classList.toggle("active", btn.dataset.screen === name));
+    }
+
+    function activeTasks() {
+      return state.tasks.filter(task => !task.rejected);
+    }
+
+    function ensureMainTask(name) {
+      const clean = name.trim();
+      if (clean && !state.mainTasks.includes(clean)) state.mainTasks.push(clean);
+    }
+
+    function groupTasks(includeRejected = true) {
+      const groups = new Map(state.mainTasks.map(mainTask => [mainTask, []]));
+      state.tasks.forEach((task, index) => {
+        if (!includeRejected && task.rejected) return;
+        if (!groups.has(task.mainTask)) groups.set(task.mainTask, []);
+        groups.get(task.mainTask).push({ task, index });
+      });
+      return Array.from(groups.entries()).map(([mainTask, tasks]) => ({ mainTask, tasks }));
+    }
+
+    function activeGroups() {
+      return groupTasks(false).filter(group => group.tasks.length);
+    }
+
+    function optionHtml(options, selected, index, field, disabled = false) {
+      return `<select data-index="${index}" data-field="${field}" ${disabled ? "disabled" : ""}>` +
+        options.map(option => `<option${option === selected ? " selected" : ""}>${escapeHtml(option)}</option>`).join("") +
+        `</select>`;
+    }
+
+    function analyze() {
+      state.mainTasks = [...baseMainTasks];
+      state.tasks = baseTasks.map(task => ({ ...task, rejected: false }));
+      state.submitted = false;
+      state.approved = false;
+      state.currentPhase = 1;
+      $("distributionCard").style.opacity = "1";
+      $("requestStatus").className = "badge badge-approved";
+      $("requestStatus").textContent = "AI analyzed";
+      $("submitBtn").disabled = false;
+      $("aiDot").style.background = "var(--completed)";
+      $("aiBody").innerHTML = `
+        <div class="ai-bubble">AI created ${state.mainTasks.length} main tasks and ${state.tasks.length} sub-tasks from <strong>${escapeHtml($("requestName").value)}</strong>.</div>
+        <div class="ai-bubble" style="background:#fffbeb;border-color:#fde68a;color:#92400e">Risk: timeline depends on BA specification. If Phase 1 is late, Development and QA should be notified automatically.</div>
+      `;
+      addNotification("AI", "AI workload hierarchy generated", `${state.mainTasks.length} main tasks and ${state.tasks.length} sub-tasks are ready for review.`);
+      renderAll();
+    }
+
+    function renderHierarchy() {
+      $("hierarchy").innerHTML = groupTasks(true).map((group, groupIndex) => `
+        <div class="main-task">
+          <div class="main-task-head">
+            <i class="ti ti-circle" style="color:var(--tertiary);font-size:18px"></i>
+            <span class="main-title">${escapeHtml(group.mainTask)}</span>
+            <span class="badge badge-draft">${group.tasks.filter(item => !item.task.rejected).length} active / ${group.tasks.length} total</span>
+            <button class="btn btn-secondary btn-small" data-add-sub="${groupIndex}"><i class="ti ti-plus"></i>Add sub-task</button>
+          </div>
+          <div class="sub-list">
+            ${group.tasks.length ? group.tasks.map(({ task, index }) => `
+              <div class="sub-task ${task.rejected ? "rejected" : ""}">
+                <i class="ti ${task.rejected ? "ti-circle-x" : "ti-circle-dashed"}" style="color:${task.rejected ? "var(--rejected)" : "var(--pending)"}"></i>
+                <input class="sub-title" value="${escapeHtml(task.name)}" data-index="${index}" data-field="name" ${task.rejected ? "disabled" : ""}>
+                ${optionHtml(departments, task.department, index, "department", task.rejected)}
+                ${optionHtml(assignees, task.assignee, index, "assignee", task.rejected)}
+                ${optionHtml(priorities, task.priority, index, "priority", task.rejected)}
+                <button class="btn btn-danger btn-small" data-reject="${index}" ${task.rejected ? "disabled" : ""}>Reject</button>
+                <div></div>
+                <input class="input-field" type="date" value="${escapeHtml(task.due)}" data-index="${index}" data-field="due" ${task.rejected ? "disabled" : ""}>
+                <input class="input-field" value="${escapeHtml(task.dependency)}" data-index="${index}" data-field="dependency" ${task.rejected ? "disabled" : ""} style="grid-column:span 2">
+                <span class="sub-meta">${task.rejected ? "Rejected from active plan" : "Dependency and due date editable"}</span>
+              </div>
+            `).join("") : `<div class="empty-state">No sub-task yet. Use Add sub-task to create one under this main task.</div>`}
+          </div>
+        </div>
+      `).join("") || `<div class="empty-state">No main task yet. Click Add main task.</div>`;
+
+      $("hierarchy").querySelectorAll("input, select").forEach(input => input.addEventListener("change", updateTask));
+      $("hierarchy").querySelectorAll("[data-add-sub]").forEach(btn => btn.addEventListener("click", () => addSubTask(state.mainTasks[Number(btn.dataset.addSub)])));
+      $("hierarchy").querySelectorAll("[data-reject]").forEach(btn => btn.addEventListener("click", () => rejectSubTask(Number(btn.dataset.reject))));
+    }
+
+    function renderApproval() {
+      const groups = activeGroups();
+      $("approvalCount").textContent = `${groups.length} main / ${activeTasks().length} sub`;
+      $("jiraInfo").innerHTML = `Approve to create <strong>${groups.length} parent Jira tasks</strong> and <strong>${activeTasks().length} active sub-tasks</strong>. Rejected sub-tasks will not be sent.`;
+      $("approvalTimeline").innerHTML = groups.map((group, index) => `
+        <div class="timeline-item">
+          <div class="timeline-marker">
+            <div class="timeline-dot" style="background:${state.approved && index + 1 < state.currentPhase ? "var(--completed)" : index + 1 === state.currentPhase ? "var(--progress)" : "var(--pending)"}">${state.approved && index + 1 < state.currentPhase ? "OK" : index + 1}</div>
+            ${index < groups.length - 1 ? `<div class="timeline-line"></div>` : ""}
+          </div>
+          <div class="timeline-content">
+            <div class="flex items-center gap-2">
+              <p class="timeline-title">${escapeHtml(group.mainTask)}</p>
+              <span class="badge ${index + 1 === state.currentPhase ? "badge-progress" : "badge-pending"}">${index + 1 === state.currentPhase ? "Current" : "Waiting"}</span>
+            </div>
+            <p class="timeline-meta">${group.tasks.length} sub-task(s): ${group.tasks.map(item => escapeHtml(item.task.department)).join(", ")}</p>
+          </div>
+        </div>
+      `).join("") || `<div class="empty-state">No active sub-tasks submitted yet.</div>`;
+      $("approvalAi").textContent = groups.length ? "AI recommends approving only after checking dependencies and due dates for every parent task." : "Submit a workload plan to see approval guidance.";
+    }
+
+    function renderJira() {
+      const groups = activeGroups();
+      if (!state.approved) {
+        $("jiraFeed").innerHTML = `<div class="empty-state">No Jira tasks created yet.</div>`;
+        return;
+      }
+      $("jiraFeed").innerHTML = groups.map((group, groupIndex) => `
+        <div class="notif-item unread">
+          <div class="notif-icon"><i class="ti ti-brand-jira"></i></div>
+          <div>
+            <p class="notif-title">JIRA-${2401 + groupIndex} Parent task</p>
+            <p class="notif-text">${escapeHtml(group.mainTask)} contains ${group.tasks.length} active sub-task(s).</p>
+          </div>
+        </div>
+        ${group.tasks.map(({ task }, subIndex) => `
+          <div class="notif-item">
+            <div class="notif-icon"><i class="ti ti-subtask"></i></div>
+            <div>
+              <p class="notif-title">JIRA-${2401 + groupIndex}-${subIndex + 1} Sub-task</p>
+              <p class="notif-text">${escapeHtml(task.name)} assigned to ${escapeHtml(task.assignee)} (${escapeHtml(task.department)}). Due ${escapeHtml(task.due)}.</p>
+            </div>
+          </div>
+        `).join("")}
+      `).join("");
+    }
+
+    function renderNotifications() {
+      $("notifCount").textContent = `${state.notifications.length} notifications`;
+      $("notificationFeed").innerHTML = state.notifications.map((item, index) => `
+        <div class="notif-item ${index < 2 ? "unread" : ""}">
+          <div class="notif-icon"><i class="ti ${item.icon}"></i></div>
+          <div class="notif-body">
+            <p class="notif-title">${escapeHtml(item.title)}</p>
+            <p class="notif-text">${escapeHtml(item.text)}</p>
+            <p class="notif-time">Just now</p>
+          </div>
+        </div>
+      `).join("") || `<div class="empty-state">No notifications yet.</div>`;
+    }
+
+    function renderAll() {
+      renderHierarchy();
+      renderApproval();
+      renderJira();
+      renderNotifications();
+    }
+
+    function updateTask(event) {
+      const index = Number(event.target.dataset.index);
+      const field = event.target.dataset.field;
+      if (!state.tasks[index]) return;
+      state.tasks[index][field] = event.target.value;
+      if (state.submitted) resetSubmission("Workload changed after submission.");
+      renderApproval();
+      renderJira();
+    }
+
+    function addMainTask() {
+      const name = prompt("Main task name");
+      if (!name || !name.trim()) return;
+      ensureMainTask(name);
+      $("distributionCard").style.opacity = "1";
+      $("submitBtn").disabled = activeTasks().length === 0;
+      addNotification("ti-list-check", "Main task added", name.trim());
+      renderAll();
+    }
+
+    function addSubTask(mainTask) {
+      if (!mainTask) return;
+      state.tasks.push({
+        mainTask,
+        name: "New sub-task",
+        department: "Business Analysis",
+        assignee: "Kanya N.",
+        priority: "Medium",
+        due: "2026-03-01",
+        dependency: "Manual",
+        rejected: false
+      });
+      $("submitBtn").disabled = false;
+      addNotification("ti-subtask", "Sub-task added", `Added a sub-task under ${mainTask}.`);
+      renderAll();
+    }
+
+    function rejectSubTask(index) {
+      if (!state.tasks[index]) return;
+      state.tasks[index].rejected = true;
+      if (state.submitted) resetSubmission("Sub-task rejected after submission.");
+      $("submitBtn").disabled = activeTasks().length === 0;
+      addNotification("ti-circle-x", "Sub-task rejected", `${state.tasks[index].name} was removed from the active plan.`);
+      renderAll();
+    }
+
+    function submitApproval() {
+      if (!activeTasks().length) return alert("Add at least one active sub-task before submitting.");
+      state.submitted = true;
+      state.approved = false;
+      $("approvalStatus").className = "badge badge-pending";
+      $("approvalStatus").textContent = "Pending approval";
+      $("approveBtn").disabled = false;
+      $("rejectRequestBtn").disabled = false;
+      $("requestChangesBtn").disabled = false;
+      addNotification("ti-send", "Submitted for approval", `${activeGroups().length} main tasks and ${activeTasks().length} sub-tasks are waiting for approval.`);
+      renderAll();
+      setScreen("approval");
+    }
+
+    function resetSubmission(message) {
+      state.submitted = false;
+      state.approved = false;
+      $("approvalStatus").className = "badge badge-pending";
+      $("approvalStatus").textContent = "Needs resubmission";
+      $("approveBtn").disabled = true;
+      $("rejectRequestBtn").disabled = true;
+      $("requestChangesBtn").disabled = true;
+      addNotification("ti-alert-circle", "Resubmission required", message);
+    }
+
+    function openModal(action) {
+      state.modalAction = action;
+      $("reasonGroup").classList.toggle("hidden", action === "approve");
+      $("reasonText").value = "";
+      $("confirmModal").className = action === "reject" ? "btn btn-danger" : action === "approve" ? "btn btn-success" : "btn btn-primary";
+      if (action === "approve") {
+        $("modalTitle").textContent = "Approve and send to Jira";
+        $("modalDesc").innerHTML = `Create <strong>${activeGroups().length} parent tasks</strong> and <strong>${activeTasks().length} sub-tasks</strong>.`;
+      } else if (action === "reject") {
+        $("modalTitle").textContent = "Reject request";
+        $("modalDesc").textContent = "Add a reason for rejecting this workload plan.";
+      } else {
+        $("modalTitle").textContent = "Request changes";
+        $("modalDesc").textContent = "Add feedback for the requester before sending the plan back.";
+      }
+      $("modal").classList.add("open");
+    }
+
+    function closeModal() {
+      $("modal").classList.remove("open");
+      state.modalAction = null;
+    }
+
+    function confirmModalAction() {
+      const action = state.modalAction;
+      const reason = $("reasonText").value.trim();
+      if (action !== "approve" && !reason) return alert("Please add a reason.");
+      if (action === "approve") {
+        state.approved = true;
+        state.currentPhase = 1;
+        $("approvalStatus").className = "badge badge-completed";
+        $("approvalStatus").textContent = "Approved";
+        $("jiraStatus").className = "badge badge-completed";
+        $("jiraStatus").textContent = "Created";
+        $("completePhaseBtn").disabled = false;
+        addNotification("ti-brand-jira", "Approved and sent to Jira", `${activeGroups().length} parent tasks and ${activeTasks().length} sub-tasks were created.`);
+        renderAll();
+        setScreen("jira");
+      } else if (action === "reject") {
+        $("approvalStatus").className = "badge badge-rejected";
+        $("approvalStatus").textContent = "Rejected";
+        $("approveBtn").disabled = true;
+        $("rejectRequestBtn").disabled = true;
+        $("requestChangesBtn").disabled = true;
+        addNotification("ti-circle-x", "Request rejected", reason);
+        renderNotifications();
+      } else {
+        $("approvalStatus").className = "badge badge-approved";
+        $("approvalStatus").textContent = "Changes requested";
+        $("approveBtn").disabled = true;
+        $("rejectRequestBtn").disabled = true;
+        $("requestChangesBtn").disabled = true;
+        addNotification("ti-message-circle", "Changes requested", reason);
+        renderNotifications();
+      }
+      closeModal();
+    }
+
+    function completePhase() {
+      const maxPhase = activeGroups().length;
+      addNotification("ti-player-play", `Phase ${state.currentPhase} completed`, "The next responsible department has been notified.");
+      state.currentPhase += 1;
+      if (state.currentPhase > maxPhase) {
+        $("completePhaseBtn").disabled = true;
+        addNotification("ti-circle-check", "Workflow completed", "All active main task phases are complete.");
+      }
+      renderApproval();
+      renderNotifications();
+    }
+
+    function addNotification(icon, title, text) {
+      state.notifications.unshift({ icon, title, text });
+      renderNotifications();
+    }
+
+    function clearAll() {
+      state.mainTasks = [];
+      state.tasks = [];
+      state.submitted = false;
+      state.approved = false;
+      $("distributionCard").style.opacity = ".55";
+      $("submitBtn").disabled = true;
+      $("requestStatus").className = "badge badge-draft";
+      $("requestStatus").textContent = "Draft";
+      renderAll();
+    }
+
+    document.querySelectorAll(".nav-item[data-screen]").forEach(btn => btn.addEventListener("click", () => setScreen(btn.dataset.screen)));
+    $("analyzeBtn").addEventListener("click", analyze);
+    $("addMainBtn").addEventListener("click", addMainTask);
+    $("submitBtn").addEventListener("click", submitApproval);
+    $("clearBtn").addEventListener("click", clearAll);
+    $("approveBtn").addEventListener("click", () => openModal("approve"));
+    $("rejectRequestBtn").addEventListener("click", () => openModal("reject"));
+    $("requestChangesBtn").addEventListener("click", () => openModal("changes"));
+    $("cancelModal").addEventListener("click", closeModal);
+    $("confirmModal").addEventListener("click", confirmModalAction);
+    $("completePhaseBtn").addEventListener("click", completePhase);
+
+    renderAll();
+  </script>
+</body>
+</html>

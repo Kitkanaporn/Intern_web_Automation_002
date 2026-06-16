@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorkDistrib v4 - AI-Assisted Workload Planning</title>
+  <!-- Tabler Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-soft: #eef3f8;
+      --line: #d8e0ea;
+      --line-strong: #b8c6d6;
+      --text: #17202a;
+      --muted: #617083;
+      --subtle: #8794a5;
+      --blue: #185fa5;
+      --blue-soft: #e7f1fb;
+      --green: #14795f;
+      --green-soft: #e4f5ef;
+      --amber: #a86508;
+      --amber-soft: #fff1d8;
+      --red: #a32a2a;
+      --red-soft: #fce9e9;
+      --violet: #4f46a5;
+      --violet-soft: #efedff;
+      --gray: #5b6878;
+      --gray-soft: #eef1f4;
+      --shadow: 0 16px 36px rgba(24, 45, 69, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Sarabun', system-ui, sans-serif;
+      font-size: 14px;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    .rail {
+      background: #16212f;
+      color: #dce6f2;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .nav { display: grid; gap: 8px; }
+    .nav-btn {
+      border: 0; background: transparent; color: #b7c6d8; text-align: left; padding: 10px 12px; border-radius: 8px;
+      display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s; width: 100%; font-size: 13px; font-family: inherit;
+    }
+    .nav-btn.active { background: rgba(255,255,255,0.1); color: #fff; }
+    .nav-btn:hover:not(.active) { background: rgba(255,255,255,0.05); color: #fff; }
+
+    /* Main Area */
+    .main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+    .topbar {
+      height: 60px; background: var(--surface); border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 18px; font-weight: 700; }
+
+    .workspace {
+      display: grid; grid-template-columns: 1fr 340px; gap: 20px; padding: 20px; overflow: hidden; flex: 1;
+    }
+
+    .screen { display: none; height: 100%; flex-direction: column; overflow: hidden; }
+    .screen.active { display: flex; }
+
+    .content-scroll { overflow-y: auto; display: flex; flex-direction: column; gap: 20px; flex: 1; padding-bottom: 40px; }
+
+    /* Cards */
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; flex-shrink: 0; }
+    .panel-head { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .panel-title { font-size: 15px; font-weight: 700; }
+    .panel-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .panel-body { padding: 20px; }
+
+    /* Forms */
+    .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    input, textarea, select {
+      padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 6px; outline: none; font-size: 14px; font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.1); }
+
+    .upload-box {
+      border: 2px dashed var(--line-strong); border-radius: 8px; padding: 24px; text-align: center; background: var(--surface-soft);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .upload-box:hover { border-color: var(--blue); background: var(--blue-soft); }
+
+    /* Task Table */
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+
+    .main-task-row td {
+      background: #eef3f8;
+      font-weight: 800;
+      border-top: 2px solid var(--line);
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .main-task-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sub-task-row td:first-child { padding-left: 32px; color: var(--text); }
+    .sub-task-row td:first-child::before { content: "↳ "; color: var(--line-strong); margin-right: 4px; }
+
+    .editable-input {
+      border: 1px solid transparent; background: transparent; width: 100%; padding: 4px; font-size: 13px; border-radius: 4px; font-family: inherit;
+    }
+    .editable-input:hover { border-color: var(--line-strong); background: #fff; }
+    .editable-input:focus { border-color: var(--blue); background: #fff; outline: none; }
+
+    /* AI Sidebar */
+    .side { display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+    .ai-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; flex-shrink: 0; }
+    .ai-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+    .ai-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+    .ai-analysis-box { background: #f0f7ff; border: 1px solid #d0e1f9; border-radius: 8px; padding: 12px; font-size: 12px; }
+    .ai-bubble { background: var(--surface-soft); border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.5; color: var(--muted); border: 1px solid var(--line); }
+
+    .suggest-item {
+      border: 1px solid var(--line); border-radius: 6px; padding: 10px; background: #fff;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .suggest-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 12px; color: var(--text); }
+    .btn-add-sm { padding: 4px 8px; border-radius: 4px; border: none; background: var(--blue); color: #fff; font-size: 10px; cursor: pointer; }
+    .ai-section-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-top: 4px; letter-spacing: 0.04em; }
+    .suggest-sub-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); gap: 8px; }
+    .suggest-add-btn { border: none; background: none; color: var(--blue); cursor: pointer; font-size: 14px; flex-shrink: 0; }
+
+    /* Buttons */
+    .btn { padding: 10px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer; border: 1px solid var(--line-strong); background: #fff; display: flex; align-items: center; gap: 8px; font-family: inherit; }
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-tiny { padding: 4px 8px; font-size: 11px; border-radius: 4px; }
+    .btn-delete { color: var(--red); background: none; border: none; cursor: pointer; font-size: 14px; padding: 4px; }
+    .btn-delete:hover { background: var(--red-soft); border-radius: 4px; }
+
+    /* Status Pill */
+    .status-pill { padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; background: var(--surface-soft); color: var(--muted); white-space: nowrap; }
+    .status-pill.blue { background: var(--blue-soft); color: var(--blue); }
+    .status-pill.amber { background: var(--amber-soft); color: var(--amber); }
+    .status-pill.green { background: var(--green-soft); color: var(--green); }
+    .status-pill.red { background: var(--red-soft); color: var(--red); }
+    .status-pill.violet { background: var(--violet-soft); color: var(--violet); }
+    .status-pill.gray { background: var(--gray-soft); color: var(--gray); }
+
+    .empty-state { padding: 40px 20px; text-align: center; color: var(--subtle); display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
+    /* Animation */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; }
+
+    .hidden { display: none !important; }
+
+    /* Login Screen */
+    .login-overlay {
+      position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+      padding: 32px; width: 400px; box-shadow: var(--shadow); text-align: center;
+    }
+    .role-select {
+      display: grid; gap: 12px; margin-top: 24px;
+    }
+    .role-btn {
+      padding: 16px; border: 2px solid var(--line); border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; gap: 12px; transition: all 0.2s; background: #fff; width: 100%; text-align: left; font-family: inherit;
+    }
+    .role-btn:hover { border-color: var(--blue); background: var(--blue-soft); }
+    .role-btn strong { display: block; font-size: 14px; }
+    .role-btn span { font-size: 12px; color: var(--muted); }
+
+    /* === New for v4 === */
+
+    /* Dashboard */
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .metric-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; box-shadow: var(--shadow); }
+    .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.04em; }
+    .metric-value { font-size: 26px; font-weight: 800; line-height: 1; }
+    .metric-sub { font-size: 11px; color: var(--subtle); margin-top: 6px; }
+
+    .dept-overview-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfcfe; }
+    .dept-overview-name { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .dept-overview-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 2px 0; }
+
+    /* Confidence bar */
+    .confidence-track { background: var(--surface-soft); border-radius: 99px; height: 8px; overflow: hidden; border: 1px solid var(--line); }
+    .confidence-fill { background: var(--blue); height: 100%; border-radius: 99px; transition: width .6s ease; }
+
+    /* Risk chips */
+    .risk-chip { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; padding: 8px 10px; border-radius: 6px; line-height: 1.4; }
+    .risk-chip strong { font-weight: 700; }
+    .risk-chip.high { background: var(--red-soft); color: var(--red); }
+    .risk-chip.medium { background: var(--amber-soft); color: var(--amber); }
+    .risk-chip.low { background: var(--green-soft); color: var(--green); }
+
+    /* Model badge */
+    .model-badge { font-size: 10px; padding: 3px 8px; border-radius: 99px; background: var(--violet-soft); color: var(--violet); font-weight: 700; }
+
+    /* Phase Tracker */
+    .phase-track { display: flex; flex-direction: column; }
+    .phase-step { display: flex; gap: 12px; }
+    .phase-line-col { display: flex; flex-direction: column; align-items: center; }
+    .phase-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; border: 2px solid var(--line-strong); background: #fff; color: var(--muted); }
+    .phase-circle.done { background: var(--green); border-color: var(--green); color: #fff; }
+    .phase-circle.in-progress { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .phase-circle.blocked { background: var(--red); border-color: var(--red); color: #fff; }
+    .phase-vline { width: 2px; flex: 1; min-height: 28px; background: var(--line); }
+    .phase-vline.done { background: var(--green); }
+    .phase-content { flex: 1; padding-bottom: 20px; }
+    .phase-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .phase-title { font-weight: 700; font-size: 14px; }
+    .phase-meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+    .dept-pill { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: var(--violet-soft); color: var(--violet); }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen" class="login-overlay">
+  <div class="login-card">
+    <div style="background:var(--blue); width:48px; height:48px; border-radius:12px; color:#fff; display:grid; place-items:center; margin: 0 auto 16px;"><i class="ti ti-lock" style="font-size:24px;"></i></div>
+    <h2 style="font-size:20px; font-weight:800;">WorkDistrib Login</h2>
+    <p style="color:var(--muted); font-size:13px; margin-top:8px;">กรุณาเลือกบทบาทเพื่อเข้าสู่ระบบจำลอง</p>
+
+    <div class="role-select">
+      <button class="role-btn" onclick="login('staff')">
+        <div style="background:var(--blue-soft); color:var(--blue); padding:10px; border-radius:50%;"><i class="ti ti-user-edit"></i></div>
+        <div style="text-align:left;">
+          <strong>กัญญา น. (Staff)</strong>
+          <span>ผู้สร้างคำขอและวางแผนงาน</span>
+        </div>
+      </button>
+      <button class="role-btn" onclick="login('approver')">
+        <div style="background:var(--amber-soft); color:var(--amber); padding:10px; border-radius:50%;"><i class="ti ti-user-check"></i></div>
+        <div style="text-align:left;">
+          <strong>สมชาย พ. (Approver)</strong>
+          <span>ผู้ตรวจสอบและอนุมัติแผนงาน</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="app hidden" id="main-app">
+  <aside class="rail">
+    <div class="brand">
+      <div style="background:var(--blue); padding:6px; border-radius:6px; color:#fff;"><i class="ti ti-sparkles"></i></div>
+      <span>WorkDistrib v4</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" id="nav-dashboard" onclick="setScreen('dashboard', this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+      <button class="nav-btn" id="nav-request" onclick="setScreen('request', this)"><i class="ti ti-file-plus"></i> New Request</button>
+      <button class="nav-btn" id="nav-approval" onclick="setScreen('approval', this)"><i class="ti ti-checklist"></i> Approval Queue</button>
+      <button class="nav-btn" id="nav-notif" onclick="setScreen('notif', this)"><i class="ti ti-bell"></i> Notifications <span id="notif-badge" class="status-pill red hidden" style="padding: 2px 6px; font-size: 9px; margin-left: auto;">0</span></button>
+    </nav>
+    <div style="margin-top:auto;">
+      <button class="nav-btn" onclick="logout()" style="width:100%; border:1px solid rgba(255,255,255,0.1);"><i class="ti ti-logout"></i> Logout</button>
+      <div style="font-size:11px; color:rgba(255,255,255,0.4); padding-top:16px; margin-top:16px; border-top:1px solid rgba(255,255,255,0.1);">
+        TSD Internal Tool<br>Depository &amp; Registrar
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <h1 id="page-title">Dashboard</h1>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span class="status-pill blue" id="user-role-badge">Internal Access</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-weight:700; font-size:13px;" id="user-display-name">กัญญา น.</span>
+          <div style="width:32px; height:32px; border-radius:50%; background:var(--blue-soft); color:var(--blue); display:grid; place-items:center; font-weight:700; font-size:12px;" id="user-avatar">KN</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <!-- SCREEN: DASHBOARD -->
+      <section id="screen-dashboard" class="screen active">
+        <div class="content-scroll">
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="metric-label">Total Requests</div>
+              <div class="metric-value" id="metric-total">8</div>
+              <div class="metric-sub">ทั้งหมดในระบบ (เดือนนี้)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Pending Approval</div>
+              <div class="metric-value" id="metric-pending">0</div>
+              <div class="metric-sub">รอการอนุมัติจากผู้ตรวจสอบ</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">High / Critical Sub-tasks</div>
+              <div class="metric-value" id="metric-risk">2</div>
+              <div class="metric-sub">ต้องติดตามใกล้ชิด</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">AI Avg Confidence</div>
+              <div class="metric-value" id="metric-conf">--</div>
+              <div class="metric-sub">model: gemini-2.5-flash</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-title">Recent Workload Requests</p>
+                <p class="panel-sub">ภาพรวมคำขอล่าสุดของแผนก Depository &amp; Registrar</p>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:0;">
+              <table style="border:none; border-radius:0; margin-top:0;">
+                <thead>
+                  <tr>
+                    <th style="width:32%">Title</th>
+                    <th style="width:18%">Client</th>
+                    <th style="width:18%">Type</th>
+                    <th style="width:12%">Priority</th>
+                    <th style="width:20%">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-requests">
+                  <tr>
+                    <td>Annual Report Disclosure Pack</td>
+                    <td>บลจ. กรุงเทพธนา</td>
+                    <td>Documentation</td>
+                    <td><span class="status-pill blue">Medium</span></td>
+                    <td><span class="status-pill green">เสร็จสิ้น</span></td>
+                  </tr>
+                  <tr>
+                    <td>Shareholder Data Migration</td>
+                    <td>ตลาดหลักทรัพย์ฯ</td>
+                    <td>Data Migration</td>
+                    <td><span class="status-pill amber">High</span></td>
+                    <td><span class="status-pill violet">กำลังดำเนินการ</span></td>
+                  </tr>
+                  <tr>
+                    <td>UAT - New Settlement Module</td>
+                    <td>Clearing House Co.</td>
+                    <td>UAT Support</td>
+                    <td><span class="status-pill blue">Medium</span></td>
+                    <td><span class="status-pill gray">แบบร่าง</span></td>
+                  </tr>
+                  <tr id="dashboard-demo-row">
+                    <td>Corporate Action - Stock Dividend</td>
+                    <td>บมจ. อิสซูเออร์ เอ็กซ์วาย</td>
+                    <td>Regulatory Change</td>
+                    <td><span class="status-pill red">High</span></td>
+                    <td><span class="status-pill gray" id="dashboard-demo-status">แบบร่าง</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-title">Department Workload Overview</p>
+                <p class="panel-sub">จำนวนงานที่กำลังดำเนินการแยกตามแผนก (รวม Corporate Action ปัจจุบัน)</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="metric-grid" id="dept-overview">
+                <!-- filled by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN: NEW REQUEST -->
+      <section id="screen-request" class="screen">
+        <div class="content-scroll">
+
+          <div id="approver-warning" class="panel hidden" style="background:var(--amber-soft); border-color:var(--amber);">
+            <div class="panel-body" style="display:flex; align-items:center; gap:12px; color:var(--amber);">
+              <i class="ti ti-alert-circle" style="font-size:24px;"></i>
+              <p>คุณอยู่ในโหมด <strong>Approver</strong> — หน้าจอนี้สำหรับ Staff สร้างคำขอใหม่เท่านั้น</p>
+            </div>
+          </div>
+
+          <!-- SECTION: INTAKE -->
+          <div class="panel" id="staff-intake-panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-title">Requirement Intake</p>
+                <p class="panel-sub">ใส่ข้อมูล Requirement หรืออัปโหลดไฟล์เพื่อให้ AI ช่วยวิเคราะห์งาน</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="field-group">
+                <div class="field">
+                  <label>รายละเอียดคำขอ (Text Input)</label>
+                  <textarea id="text-input" placeholder="พิมพ์รายละเอียดความต้องการที่นี่...">ลูกค้าต้องการพัฒนาระบบ Corporate Action สำหรับการจ่าย Stock Dividend รองรับ ex-date calculation ใหม่ตาม SEC circular ที่ออกมาเมื่อเดือนที่แล้ว ต้องการให้เสร็จภายใน Q1 2569</textarea>
+                </div>
+                <div class="field">
+                  <label>อัปโหลดเอกสาร (File Upload)</label>
+                  <div class="upload-box" onclick="simulateUpload()">
+                    <i class="ti ti-cloud-upload" style="font-size:32px; color:var(--muted); display:block; margin-bottom:8px;"></i>
+                    <span id="upload-status" style="font-size:13px; color:var(--muted);">คลิกเพื่อเลือกไฟล์ (PDF, Word, Excel)</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:flex-end;">
+                <button class="btn btn-primary" id="btn-analyze" onclick="startAnalysis()">
+                  <i class="ti ti-sparkles"></i> บันทึกและวิเคราะห์ด้วย AI (Save &amp; Analyze)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION: PLAN -->
+          <div class="panel" id="staff-plan-panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-title">Recommended main task and sub-task breakdown</p>
+                <p class="panel-sub">Review the main task first, then edit the sub-tasks before submitting it for approval.</p>
+              </div>
+              <span class="status-pill blue" id="task-count-pill">0 tasks</span>
+            </div>
+            <div class="panel-body">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:14px; font-weight:700;">Main tasks and sub-tasks</h3>
+                <button class="btn" style="border-color:var(--blue); color:var(--blue);" onclick="addCustomMainTask()">+ Add main task</button>
+              </div>
+
+              <div id="plan-empty" class="empty-state">
+                <i class="ti ti-list-check" style="font-size:40px;"></i>
+                <p>ยังไม่มีรายการงานที่เลือก<br>กรุณาเลือก Task จากคำแนะนำของ AI ในแถบด้านข้าง</p>
+              </div>
+
+              <table id="plan-table" class="hidden" style="table-layout: fixed;">
+                <thead>
+                  <tr>
+                    <th style="width:23%">Sub-task</th>
+                    <th style="width:16%">Department</th>
+                    <th style="width:15%">Assignee</th>
+                    <th style="width:12%">Priority</th>
+                    <th style="width:13%">Due Date</th>
+                    <th style="width:11%">Dependency</th>
+                    <th style="width:10%">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="plan-body">
+                  <!-- Rows added dynamically -->
+                </tbody>
+              </table>
+            </div>
+            <div style="padding:14px 20px; border-top:1px solid var(--line); background:#fbfcfe; display:flex; justify-content:flex-end; gap:12px;">
+              <button class="btn">Save Draft</button>
+              <button class="btn btn-primary" id="btn-submit" disabled onclick="submitPlan()">Submit for Approval</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN: APPROVAL QUEUE -->
+      <section id="screen-approval" class="screen">
+        <div class="content-scroll">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-title">Human review and approval</p>
+                <p class="panel-sub">The system cannot create Jira tasks until a reviewer approves the plan.</p>
+              </div>
+              <span class="status-pill amber" id="approval-status-pill">Waiting for submission</span>
+            </div>
+            <div class="panel-body">
+              <!-- Summary Grid -->
+              <div class="metric-grid" style="margin-bottom:20px;">
+                <div style="border:1px solid var(--line); border-radius:8px; padding:12px; background:#fbfcfe;">
+                  <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:4px;">Sub-tasks</span>
+                  <strong id="sum-tasks" style="font-size:20px;">0</strong>
+                </div>
+                <div style="border:1px solid var(--line); border-radius:8px; padding:12px; background:#fbfcfe;">
+                  <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:4px;">Main Tasks / Phases</span>
+                  <strong id="sum-main" style="font-size:20px;">0</strong>
+                </div>
+                <div style="border:1px solid var(--line); border-radius:8px; padding:12px; background:#fbfcfe;">
+                  <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:4px;">High Risk</span>
+                  <strong id="sum-risk" style="font-size:20px;">0</strong>
+                </div>
+                <div style="border:1px solid var(--line); border-radius:8px; padding:12px; background:#fbfcfe;">
+                  <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:4px;">AI Confidence</span>
+                  <strong id="sum-conf" style="font-size:20px;">--</strong>
+                </div>
+              </div>
+
+              <!-- Sequential Phase Tracker -->
+              <h3 style="font-size:14px; font-weight:700; margin-bottom:4px;">Sequential Phase Tracker</h3>
+              <p class="panel-sub" style="margin-bottom:12px;">ระบบจะแจ้งเตือนแผนกถัดไปก็ต่อเมื่อสถานะของ phase ปัจจุบันเปลี่ยนเป็น <strong>DONE</strong> เท่านั้น (TSD Rule 4)</p>
+              <div class="phase-track" id="approval-timeline">
+                <div class="empty-state">
+                  <p>กรุณาส่งแผนงานเพื่อรับการตรวจสอบ</p>
+                </div>
+              </div>
+            </div>
+            <div id="approver-actions" style="padding:14px 20px; border-top:1px solid var(--line); background:#fbfcfe; display:none; justify-content:flex-end; gap:12px;">
+              <button class="btn" style="color:var(--red); border-color:var(--red-soft);" onclick="approverAction('reject')">Reject</button>
+              <button class="btn" onclick="approverAction('request_changes')">Request Changes</button>
+              <button class="btn btn-primary" id="btn-approve" onclick="approveFinal()">Approve &amp; Create Jira Tasks</button>
+            </div>
+            <div id="staff-wait-msg" style="padding:14px 20px; text-align:center; color:var(--muted); border-top:1px solid var(--line); display:none;">
+              กำลังรอการตรวจสอบจากคุณ <strong>สมชาย พ.</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN: NOTIFICATIONS -->
+      <section id="screen-notif" class="screen">
+        <div class="content-scroll">
+            <div class="panel">
+                <div class="panel-head"><p class="panel-title">Notifications</p></div>
+                <div class="panel-body">
+                    <div id="notif-feed" style="display:flex; flex-direction:column; gap:12px;">
+                        <div class="empty-state">ไม่มีการแจ้งเตือนใหม่</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      <!-- AI Sidebar Area -->
+      <aside class="side">
+        <div class="ai-card">
+          <div class="ai-head">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i class="ti ti-robot" style="color:var(--blue); font-size:18px;"></i>
+              <strong>AI Recommendation</strong>
+              <span class="model-badge" id="ai-model-badge" style="display:none;">gemini-2.5-flash</span>
+            </div>
+            <div style="width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 4px var(--green-soft);"></div>
+          </div>
+          <div class="ai-body" id="ai-body">
+            <div class="empty-state" style="padding-top:60px;">
+              <i class="ti ti-analyze" style="font-size:40px;"></i>
+              <p style="font-size:12px;">รอการวิเคราะห์ข้อมูล...</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-card">
+          <div class="ai-head">
+            <strong>System Status</strong>
+          </div>
+          <div class="ai-body" style="gap:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Jira Connectivity</span>
+              <span style="color:var(--green); font-weight:700;">Online</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Notification Engine</span>
+              <span style="color:var(--green); font-weight:700;">Ready</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Gemini API</span>
+              <span style="color:var(--green); font-weight:700;">Connected</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script>
+  // === Shared enums / labels (aligned with prisma/schema.prisma + claude.md section 10) ===
+  const DEPARTMENTS = ["BUSINESS_ANALYSIS", "DEVELOPMENT", "QA_TESTING", "REGISTRAR_OPS"];
+  const DEPT_TH = {
+    BUSINESS_ANALYSIS: "Business Analysis",
+    DEVELOPMENT: "Development",
+    QA_TESTING: "QA & Testing",
+    REGISTRAR_OPS: "Registrar Operations",
+  };
+  const PRIORITY_TH = {
+    CRITICAL: "วิกฤต (Critical)",
+    HIGH: "สูง (High)",
+    MEDIUM: "กลาง (Medium)",
+    LOW: "ต่ำ (Low)",
+  };
+  // Covers both RequestStatus and AssignmentStatus enums
+  const STATUS_TH = {
+    DRAFT: "แบบร่าง",
+    PENDING_APPROVAL: "รออนุมัติ",
+    APPROVED: "อนุมัติแล้ว",
+    IN_PROGRESS: "กำลังดำเนินการ",
+    COMPLETED: "เสร็จสิ้น",
+    REJECTED: "ถูกปฏิเสธ",
+    NOT_STARTED: "ยังไม่เริ่ม",
+    BLOCKED: "ติดขัด",
+  };
+  const STATUS_CLASS = {
+    DRAFT: "gray",
+    PENDING_APPROVAL: "amber",
+    APPROVED: "blue",
+    IN_PROGRESS: "violet",
+    COMPLETED: "green",
+    REJECTED: "red",
+    NOT_STARTED: "gray",
+    BLOCKED: "red",
+  };
+
+  let currentUser = null;
+  let uploadedFileName = "";
+  let unreadNotifs = 0;
+  let aiConfidence = null; // AIRecommendation.confidenceScore (0-1)
+
+  // Shared state simulation
+  let sharedWorkflowData = {
+    submitted: false,
+    status: 'idle', // idle | pending | approved | rejected | changes_requested | completed
+    phases: [], // [{ phaseNumber, title, department, assignees, subTaskCount, status, isSequential }]
+    stats: { tasks: 0, main: 0, risk: 0 }
+  };
+
+  const users = ["Suthida T.", "Piyawat K.", "Natcha W.", "Ananya R.", "Kanya N.", "Somchai P."];
+
+  function login(role) {
+    currentUser = role;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
+
+    const roleBadge = document.getElementById('user-role-badge');
+    const nameLabel = document.getElementById('user-display-name');
+    const avatar = document.getElementById('user-avatar');
+
+    if (role === 'staff') {
+      roleBadge.innerText = 'Staff Account';
+      roleBadge.className = 'status-pill blue';
+      nameLabel.innerText = 'กัญญา น.';
+      avatar.innerText = 'KN';
+      document.getElementById('approver-warning').classList.add('hidden');
+      document.getElementById('staff-intake-panel').classList.remove('hidden');
+      document.getElementById('staff-plan-panel').classList.remove('hidden');
+    } else {
+      roleBadge.innerText = 'Approver Account';
+      roleBadge.className = 'status-pill amber';
+      nameLabel.innerText = 'สมชาย พ.';
+      avatar.innerText = 'SP';
+      document.getElementById('approver-warning').classList.remove('hidden');
+      document.getElementById('staff-intake-panel').classList.add('hidden');
+      document.getElementById('staff-plan-panel').classList.add('hidden');
+    }
+
+    syncUIWithSharedData();
+  }
+
+  function logout() {
+    currentUser = null;
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('main-app').classList.add('hidden');
+  }
+
+  function addNotification(role, title, msg, color) {
+    // Only count as "unread" if the current user is not the target role
+    if (currentUser !== role) {
+      unreadNotifs++;
+      const badge = document.getElementById('notif-badge');
+      badge.innerText = unreadNotifs;
+      badge.classList.remove('hidden');
+    }
+
+    const feed = document.getElementById('notif-feed');
+    const empty = feed.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    const notif = document.createElement('div');
+    notif.style.borderLeft = `4px solid var(--${color})`;
+    notif.style.background = '#fff';
+    notif.style.padding = '16px';
+    notif.style.borderRadius = '4px';
+    notif.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+    notif.innerHTML = `
+      <div style="display:flex; justify-content:space-between;">
+        <strong style="color:var(--${color});">${title}</strong>
+        <span style="font-size:11px; color:var(--muted);">เมื่อสักครู่</span>
+      </div>
+      <p style="font-size:13px; margin-top:8px;">${msg}</p>
+    `;
+    feed.prepend(notif);
+  }
+
+  function setScreen(name, btnEl) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    if (btnEl) {
+      btnEl.classList.add('active');
+    } else {
+      document.getElementById('nav-' + name).classList.add('active');
+    }
+
+    const titles = {
+      dashboard: 'Dashboard',
+      request: 'New Workload Request',
+      approval: 'Approval Queue',
+      notif: 'Notifications'
+    };
+    document.getElementById('page-title').innerText = titles[name] || '';
+
+    if (name === 'notif') {
+      unreadNotifs = 0;
+      document.getElementById('notif-badge').classList.add('hidden');
+    }
+    if (name === 'dashboard') {
+      refreshDashboard();
+    }
+  }
+
+  function startAnalysis() {
+    const aiBody = document.getElementById('ai-body');
+    const modelBadge = document.getElementById('ai-model-badge');
+    const textInput = document.getElementById('text-input').value;
+    const btn = document.getElementById('btn-analyze');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> AI กำลังวิเคราะห์...';
+    modelBadge.style.display = 'none';
+
+    aiBody.innerHTML = `
+      <div style="text-align:center; padding:40px 0;">
+        <i class="ti ti-sparkles spin" style="font-size:32px; color:var(--blue); display:block; margin-bottom:12px;"></i>
+        <p style="font-weight:700; font-size:13px;">AI กำลังประมวลผล Requirement...</p>
+      </div>
+    `;
+
+    setTimeout(() => {
+      aiConfidence = 0.92;
+      modelBadge.style.display = 'inline-block';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-refresh"></i> วิเคราะห์ใหม่ (Re-analyze)';
+
+      const confidencePct = Math.round(aiConfidence * 100);
+
+      aiBody.innerHTML = `
+        <div class="ai-analysis-box">
+          <strong style="color:var(--blue); display:block; margin-bottom:4px;">ข้อมูลที่ได้รับวิเคราะห์:</strong>
+          <div style="margin-bottom:8px;">
+            <label style="font-size:10px; opacity:0.7;">Requirement:</label>
+            <p style="margin:2px 0;">${textInput.substring(0, 100)}...</p>
+          </div>
+          <div>
+            <label style="font-size:10px; opacity:0.7;">ไฟล์แนบ:</label>
+            <p style="margin:2px 0;">${uploadedFileName || "ไม่มีไฟล์แนบ"}</p>
+          </div>
+        </div>
+
+        <div class="ai-bubble">
+          วิเคราะห์โครงการ "Regulatory Change" สำเร็จ พบ 3 module ที่เกี่ยวข้อง และแนะนำลำดับขั้นตอนแบบ Sequential (Business Analysis → Development → QA &amp; Testing)
+        </div>
+
+        <div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--muted); margin-bottom:4px;">
+            <span>AI CONFIDENCE SCORE</span>
+            <span style="color:var(--blue);">${confidencePct}%</span>
+          </div>
+          <div class="confidence-track"><div class="confidence-fill" style="width:${confidencePct}%;"></div></div>
+        </div>
+
+        <div>
+          <span class="ai-section-label">Risk Flags</span>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+            <div class="risk-chip high">
+              <i class="ti ti-alert-triangle"></i>
+              <span><strong>กำหนดส่งงานกระชั้น (Deadline Risk)</strong><br>ต้องเสร็จภายใน Q1 2569 — เหลือเวลาดำเนินการจำกัด</span>
+            </div>
+            <div class="risk-chip medium">
+              <i class="ti ti-info-circle"></i>
+              <span><strong>ต้องตรวจสอบ Compliance (Regulatory Risk)</strong><br>ควรให้ Registrar Operations ตรวจทาน ex-date calculation ก่อน Go-live</span>
+            </div>
+          </div>
+        </div>
+
+        <span class="ai-section-label">แนะนำ Module: ${DEPT_TH.BUSINESS_ANALYSIS}</span>
+        <div class="suggest-item">
+          <div class="suggest-header">
+            <span>Analysis and Spec</span>
+            <button class="btn-add-sm" onclick="addMainTask('Analysis and Spec')">Add All</button>
+          </div>
+          <div style="display:grid; gap:6px;">
+            <div class="suggest-sub-row">
+              <span>• ตรวจสอบเกณฑ์ SEC ใหม่</span>
+              <button class="suggest-add-btn" onclick="addSubTask('Analysis and Spec', 'ตรวจสอบเกณฑ์ SEC ใหม่', 'BUSINESS_ANALYSIS', null, 'Suthida T.')">+</button>
+            </div>
+            <div class="suggest-sub-row">
+              <span>• จัดทำ Functional Spec สำหรับ Ex-date ใหม่</span>
+              <button class="suggest-add-btn" onclick="addSubTask('Analysis and Spec', 'จัดทำ Functional Spec สำหรับ Ex-date ใหม่', 'BUSINESS_ANALYSIS', null, 'Suthida T.')">+</button>
+            </div>
+          </div>
+        </div>
+
+        <span class="ai-section-label">แนะนำ Module: ${DEPT_TH.DEVELOPMENT}</span>
+        <div class="suggest-item">
+          <div class="suggest-header">
+            <span>Implementation</span>
+            <button class="btn-add-sm" onclick="addMainTask('Implementation')">Add All</button>
+          </div>
+          <div style="display:grid; gap:6px;">
+            <div class="suggest-sub-row">
+              <span>• แก้ไข Logic Ex-date Calculation</span>
+              <button class="suggest-add-btn" onclick="addSubTask('Implementation', 'แก้ไข Logic Ex-date Calculation', 'DEVELOPMENT', null, 'Piyawat K.')">+</button>
+            </div>
+            <div class="suggest-sub-row">
+              <span>• พัฒนา API คำนวณ Stock Dividend</span>
+              <button class="suggest-add-btn" onclick="addSubTask('Implementation', 'พัฒนา API คำนวณ Stock Dividend', 'DEVELOPMENT', null, 'Piyawat K.')">+</button>
+            </div>
+          </div>
+        </div>
+
+        <span class="ai-section-label">แนะนำ Module: ${DEPT_TH.QA_TESTING}</span>
+        <div class="suggest-item">
+          <div class="suggest-header">
+            <span>Test Plan and UAT</span>
+            <button class="btn-add-sm" onclick="addMainTask('Test Plan and UAT')">Add All</button>
+          </div>
+          <div style="display:grid; gap:6px;">
+            <div class="suggest-sub-row">
+              <span>• ทดสอบการคำนวณ Stock Dividend</span>
+              <button class="suggest-add-btn" onclick="addSubTask('Test Plan and UAT', 'ทดสอบการคำนวณ Stock Dividend', 'QA_TESTING', null, 'Natcha W.')">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      refreshDashboard();
+    }, 1500);
+  }
+
+  function addMainTask(name) {
+    const table = document.getElementById('plan-table');
+    const empty = document.getElementById('plan-empty');
+    const body = document.getElementById('plan-body');
+    table.classList.remove('hidden');
+    empty.classList.add('hidden');
+    const rowId = 'main-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const row = document.createElement('tr');
+    row.className = 'main-task-row';
+    row.id = rowId;
+    row.innerHTML = `
+      <td colspan="7">
+        <div class="main-task-container">
+          <input class="editable-input main-task-title" style="font-weight:800; font-size:14px; color:var(--blue);" value="${name}">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-tiny" style="background:var(--blue); color:#fff; border:none;" onclick="addSubTask('${name}', 'New sub-task', 'BUSINESS_ANALYSIS', '${rowId}')">+ Add sub-task</button>
+            <button class="btn-delete" onclick="deleteMainTask('${rowId}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+      </td>
+    `;
+    body.appendChild(row);
+    updateTaskCount();
+  }
+
+  function addCustomMainTask() {
+    addMainTask('New Main Task');
+  }
+
+  function deleteMainTask(id) {
+    const row = document.getElementById(id);
+    if (!row) return;
+    let next = row.nextElementSibling;
+    while (next && !next.classList.contains('main-task-row')) {
+      let toRemove = next;
+      next = next.nextElementSibling;
+      toRemove.remove();
+    }
+    row.remove();
+    updateTaskCount();
+  }
+
+  function addSubTask(mainTaskName, subTaskName, dept, mainRowId, assignee) {
+    const table = document.getElementById('plan-table');
+    const empty = document.getElementById('plan-empty');
+    const body = document.getElementById('plan-body');
+    const btnSubmit = document.getElementById('btn-submit');
+    table.classList.remove('hidden');
+    empty.classList.add('hidden');
+    btnSubmit.disabled = false;
+
+    const row = document.createElement('tr');
+    row.className = 'sub-task-row';
+    const deptOptions = DEPARTMENTS.map(d => `<option value="${d}" ${dept === d ? 'selected' : ''}>${DEPT_TH[d]}</option>`).join('');
+    const userOptions = users.map(u => `<option ${assignee === u ? 'selected' : ''}>${u}</option>`).join('');
+    const priorityOptions = Object.keys(PRIORITY_TH).map(p => `<option value="${p}" ${p === 'HIGH' ? 'selected' : ''}>${PRIORITY_TH[p]}</option>`).join('');
+
+    row.innerHTML = `
+      <td><input class="editable-input sub-task-name" value="${subTaskName}"></td>
+      <td><select class="editable-input sub-task-dept">${deptOptions}</select></td>
+      <td><select class="editable-input sub-task-assignee">${userOptions}</select></td>
+      <td><select class="editable-input sub-task-priority">${priorityOptions}</select></td>
+      <td><input type="date" class="editable-input sub-task-due" value="2026-01-20"></td>
+      <td><input class="editable-input sub-task-dep" value="None"></td>
+      <td style="text-align:center;"><button class="btn-delete" onclick="this.closest('tr').remove(); updateTaskCount();"><i class="ti ti-trash"></i></button></td>
+    `;
+
+    if (mainRowId) {
+      const mainRow = document.getElementById(mainRowId);
+      let lastRow = mainRow;
+      let nextRow = mainRow.nextElementSibling;
+      while (nextRow && !nextRow.classList.contains('main-task-row')) {
+        lastRow = nextRow;
+        nextRow = nextRow.nextElementSibling;
+      }
+      lastRow.after(row);
+    } else {
+      body.appendChild(row);
+    }
+    updateTaskCount();
+  }
+
+  function updateTaskCount() {
+    const count = document.querySelectorAll('.sub-task-row').length;
+    document.getElementById('task-count-pill').innerText = count + " tasks";
+  }
+
+  // === Sequential Phase Tracker (TSD Rule 4) ===
+  function renderPhaseTracker(phases) {
+    const container = document.getElementById('approval-timeline');
+    if (!phases.length) {
+      container.innerHTML = '<div class="empty-state"><p>กรุณาส่งแผนงานเพื่อรับการตรวจสอบ</p></div>';
+      return;
+    }
+
+    container.innerHTML = phases.map((phase, idx) => {
+      const isLast = idx === phases.length - 1;
+      const circleClass = phase.status === 'DONE' ? 'done' : phase.status === 'IN_PROGRESS' ? 'in-progress' : phase.status === 'BLOCKED' ? 'blocked' : '';
+      const circleContent = phase.status === 'DONE' ? '<i class="ti ti-check"></i>' : (idx + 1);
+      const lineClass = phase.status === 'DONE' ? 'done' : '';
+      const showAdvanceBtn = phase.status === 'IN_PROGRESS' && sharedWorkflowData.status === 'approved';
+      const assigneesText = phase.assignees.join(', ') || '-';
+
+      return `
+        <div class="phase-step">
+          <div class="phase-line-col">
+            <div class="phase-circle ${circleClass}">${circleContent}</div>
+            ${!isLast ? `<div class="phase-vline ${lineClass}"></div>` : ''}
+          </div>
+          <div class="phase-content">
+            <div class="phase-title-row">
+              <span class="phase-title">Phase ${idx + 1}: ${phase.title}</span>
+              <span class="dept-pill">${DEPT_TH[phase.department]}</span>
+              <span class="status-pill ${STATUS_CLASS[phase.status]}">${STATUS_TH[phase.status]}</span>
+              ${phase.isSequential ? '<span class="status-pill gray"><i class="ti ti-arrow-right"></i> Sequential</span>' : ''}
+            </div>
+            <div class="phase-meta">
+              <span><i class="ti ti-users"></i> ${assigneesText}</span>
+              <span><i class="ti ti-list-check"></i> ${phase.subTaskCount} sub-tasks</span>
+            </div>
+            ${showAdvanceBtn ? `<div style="margin-top:8px;"><button class="btn btn-tiny" style="border-color:var(--green); color:var(--green);" onclick="advancePhase(${idx})"><i class="ti ti-player-play"></i> [Demo] Mark Phase ${idx + 1} as Done</button></div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function advancePhase(idx) {
+    const phases = sharedWorkflowData.phases;
+    phases[idx].status = 'DONE';
+
+    if (phases[idx + 1]) {
+      // Rule 4: notify next-phase department only because status just became DONE
+      phases[idx + 1].status = 'IN_PROGRESS';
+      addNotification(
+        'staff',
+        'Phase Trigger',
+        `Phase ${idx + 1} (${DEPT_TH[phases[idx].department]}) เสร็จสิ้น ระบบแจ้งเตือน Phase ${idx + 2} (${DEPT_TH[phases[idx + 1].department]}) ให้เริ่มงานอัตโนมัติ`,
+        'blue'
+      );
+    } else {
+      sharedWorkflowData.status = 'completed';
+      addNotification('staff', 'Request Completed', 'ทุก Phase เสร็จสมบูรณ์แล้ว คำขอนี้ถูกปิดงาน', 'green');
+    }
+
+    syncUIWithSharedData();
+  }
+
+  function getRequestStatus() {
+    if (!sharedWorkflowData.submitted) return 'DRAFT';
+    switch (sharedWorkflowData.status) {
+      case 'pending': return 'PENDING_APPROVAL';
+      case 'rejected': return 'REJECTED';
+      case 'changes_requested': return 'DRAFT';
+      case 'approved':
+      case 'completed': {
+        const phases = sharedWorkflowData.phases;
+        if (phases.length && phases.every(p => p.status === 'DONE')) return 'COMPLETED';
+        if (phases.some(p => p.status === 'IN_PROGRESS' || p.status === 'DONE')) return 'IN_PROGRESS';
+        return 'APPROVED';
+      }
+      default: return 'DRAFT';
+    }
+  }
+
+  function syncUIWithSharedData() {
+    if (sharedWorkflowData.submitted) {
+      document.getElementById('sum-tasks').innerText = sharedWorkflowData.stats.tasks;
+      document.getElementById('sum-main').innerText = sharedWorkflowData.stats.main;
+      document.getElementById('sum-risk').innerText = sharedWorkflowData.stats.risk;
+      document.getElementById('sum-conf').innerText = aiConfidence !== null ? Math.round(aiConfidence * 100) + '%' : '--';
+
+      renderPhaseTracker(sharedWorkflowData.phases);
+
+      const reqStatus = getRequestStatus();
+      const statusPill = document.getElementById('approval-status-pill');
+      statusPill.innerText = reqStatus === 'PENDING_APPROVAL' ? 'Review Required (รออนุมัติ)' : STATUS_TH[reqStatus];
+      statusPill.className = 'status-pill ' + STATUS_CLASS[reqStatus];
+
+      if (sharedWorkflowData.status === 'pending' && currentUser === 'approver') {
+        document.getElementById('approver-actions').style.display = 'flex';
+        document.getElementById('staff-wait-msg').style.display = 'none';
+      } else if (sharedWorkflowData.status === 'pending') {
+        document.getElementById('approver-actions').style.display = 'none';
+        document.getElementById('staff-wait-msg').style.display = 'block';
+      } else {
+        document.getElementById('approver-actions').style.display = 'none';
+        document.getElementById('staff-wait-msg').style.display = 'none';
+      }
+    }
+
+    refreshDashboard();
+  }
+
+  function submitPlan() {
+    const subTaskRows = document.querySelectorAll('.sub-task-row');
+    const mainTaskRows = document.querySelectorAll('.main-task-row');
+
+    if (subTaskRows.length === 0) {
+      alert("กรุณาเลือกงานอย่างน้อย 1 รายการ");
+      return;
+    }
+
+    const phases = [];
+    mainTaskRows.forEach((mt, idx) => {
+      const title = mt.querySelector('.main-task-title').value;
+      const assignees = new Set();
+      let department = null;
+      let subTaskCount = 0;
+
+      let next = mt.nextElementSibling;
+      while (next && !next.classList.contains('main-task-row')) {
+        subTaskCount++;
+        const dept = next.querySelector('.sub-task-dept').value;
+        if (!department) department = dept;
+        assignees.add(next.querySelector('.sub-task-assignee').value);
+        next = next.nextElementSibling;
+      }
+
+      phases.push({
+        phaseNumber: idx + 1,
+        title,
+        department: department || 'BUSINESS_ANALYSIS',
+        assignees: Array.from(assignees),
+        subTaskCount,
+        status: 'NOT_STARTED',
+        isSequential: mainTaskRows.length > 1
+      });
+    });
+
+    const riskCount = Array.from(document.querySelectorAll('.sub-task-priority'))
+      .filter(s => s.value === 'CRITICAL' || s.value === 'HIGH').length;
+
+    sharedWorkflowData = {
+      submitted: true,
+      status: 'pending',
+      phases,
+      stats: {
+        tasks: subTaskRows.length,
+        main: mainTaskRows.length,
+        risk: riskCount
+      }
+    };
+
+    addNotification('approver', 'New Approval Request', 'กัญญา น. ได้ส่งแผนงาน "Corporate Action" มาให้คุณตรวจสอบ', 'blue');
+    alert("ส่งคำขอเรียบร้อย! ระบบแจ้งเตือนไปยังผู้รับผิดชอบ (สมชาย พ.) แล้ว");
+    setScreen('approval');
+    syncUIWithSharedData();
+  }
+
+  function approveFinal() {
+    sharedWorkflowData.status = 'approved';
+    if (sharedWorkflowData.phases.length) {
+      sharedWorkflowData.phases[0].status = 'IN_PROGRESS';
+    }
+    addNotification('staff', 'Plan Approved!', 'สมชาย พ. ได้อนุมัติแผนงานของคุณแล้ว ระบบกำลังสร้าง Jira Tasks สำหรับ Phase 1', 'green');
+    alert("อนุมัติเรียบร้อย! แจ้งเตือนถูกส่งกลับไปยัง กัญญา น. และสร้าง Jira Epic สำหรับ Phase 1");
+    syncUIWithSharedData();
+    setScreen('notif');
+  }
+
+  function approverAction(type) {
+    if (type === 'reject') {
+      sharedWorkflowData.status = 'rejected';
+      addNotification('staff', 'Action Required', 'สมชาย พ. ได้ปฏิเสธแผนงานของคุณ โปรดตรวจสอบเหตุผลและแก้ไขใหม่', 'red');
+      alert("ปฏิเสธแผนงานเรียบร้อยแล้ว");
+    } else {
+      sharedWorkflowData.status = 'changes_requested';
+      addNotification('staff', 'Action Required', 'สมชาย พ. ขอให้แก้ไขเพิ่มเติมในแผนงานของคุณ โปรดตรวจสอบ', 'amber');
+      alert("ส่งคำขอแก้ไขเรียบร้อยแล้ว");
+    }
+    syncUIWithSharedData();
+    setScreen('notif');
+  }
+
+  // === Dashboard (app/page.tsx equivalent) ===
+  function refreshDashboard() {
+    document.getElementById('metric-pending').innerText = sharedWorkflowData.status === 'pending' ? '1' : '0';
+    document.getElementById('metric-conf').innerText = aiConfidence !== null ? Math.round(aiConfidence * 100) + '%' : '--';
+
+    const reqStatus = getRequestStatus();
+    const pill = document.getElementById('dashboard-demo-status');
+    pill.innerText = STATUS_TH[reqStatus];
+    pill.className = 'status-pill ' + STATUS_CLASS[reqStatus];
+
+    const overview = document.getElementById('dept-overview');
+    overview.innerHTML = DEPARTMENTS.map(d => {
+      const deptPhases = sharedWorkflowData.phases.filter(p => p.department === d);
+      const inProgress = deptPhases.filter(p => p.status === 'IN_PROGRESS').length;
+      const done = deptPhases.filter(p => p.status === 'DONE').length;
+      const notStarted = deptPhases.filter(p => p.status === 'NOT_STARTED').length;
+      return `
+        <div class="dept-overview-card">
+          <div class="dept-overview-name">${DEPT_TH[d]}</div>
+          <div class="dept-overview-row"><span>กำลังดำเนินการ</span><strong>${inProgress}</strong></div>
+          <div class="dept-overview-row"><span>เสร็จสิ้น</span><strong>${done}</strong></div>
+          <div class="dept-overview-row"><span>ยังไม่เริ่ม</span><strong>${notStarted}</strong></div>
+        </div>`;
+    }).join('');
+  }
+
+  function simulateUpload() {
+    const status = document.getElementById('upload-status');
+    status.innerHTML = '<i class="ti ti-loader-2 spin"></i> กำลังอัปโหลด...';
+    setTimeout(() => {
+      uploadedFileName = "SEC_Circular_2026.pdf";
+      status.innerHTML = `<i class="ti ti-circle-check" style="color:var(--green);"></i> ${uploadedFileName} อัปโหลดแล้ว`;
+    }, 1000);
+  }
+</script>
+</body>
+</html>

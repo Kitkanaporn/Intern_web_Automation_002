@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkDistrib - AI Workload Platform</title>
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        :root {
+            /* Status Colors per tsd-frontend-builder guidelines */
+            --status-draft: #94a3b8;      /* gray */
+            --status-pending: #f59e0b;    /* amber */
+            --status-approved: #2563eb;   /* blue */
+            --status-progress: #7c3aed;   /* purple */
+            --status-completed: #10b981;  /* green */
+            --status-rejected: #ef4444;   /* red */
+
+            /* TSD Internal Tool Palette */
+            --color-bg-primary: #ffffff;
+            --color-bg-secondary: #f8fafc;
+            --color-bg-tertiary: #f1f5f9;
+            --color-border: #e2e8f0;
+            --color-text-primary: #0f172a;
+            --color-text-secondary: #475569;
+            --color-text-tertiary: #94a3b8;
+            --color-brand: #185FA5; /* TSD/SET Blue */
+            
+            --border-radius: 6px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Sarabun', sans-serif; }
+        body { background-color: var(--color-bg-tertiary); color: var(--color-text-primary); font-size: 14px; }
+
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+
+        /* Layout */
+        .app-container { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Topbar */
+        .topbar { 
+            height: 48px; 
+            background: var(--color-brand); 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 0 16px; 
+            z-index: 100;
+        }
+        .logo { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        .user-profile { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+        .avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: 600; }
+
+        /* Main Content */
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Sidebar Nav */
+        .sidebar-nav { 
+            width: 64px; 
+            background: var(--color-bg-primary); 
+            border-right: 1px solid var(--color-border); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 16px 0; 
+            gap: 20px;
+        }
+        .nav-item { 
+            width: 40px; 
+            height: 40px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: var(--border-radius); 
+            color: var(--color-text-tertiary); 
+            cursor: pointer; 
+            transition: all 0.2s;
+        }
+        .nav-item:hover { background: var(--color-bg-secondary); color: var(--color-brand); }
+        .nav-item.active { background: #eef2ff; color: var(--color-brand); }
+
+        /* Screen Area */
+        .screen-container { flex: 1; display: flex; flex-direction: column; background: var(--color-bg-tertiary); overflow: hidden; }
+        
+        .screen-header { 
+            padding: 16px 24px; 
+            background: var(--color-bg-primary); 
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .screen-title { font-size: 18px; font-weight: 600; color: var(--color-text-primary); }
+        .screen-subtitle { font-size: 13px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+        .screen-content { flex: 1; display: flex; overflow: hidden; }
+        .main-col { flex: 1; overflow-y: auto; padding: 24px; }
+        
+        /* AI Sidebar */
+        .ai-sidebar { 
+            width: 320px; 
+            background: var(--color-bg-primary); 
+            border-left: 1px solid var(--color-border); 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .ai-header { padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 8px; }
+        .ai-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-completed); }
+        .ai-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+        
+        .ai-bubble { 
+            background: var(--color-bg-secondary); 
+            border: 1px solid var(--color-border); 
+            border-radius: 8px; 
+            padding: 12px; 
+            font-size: 13px; 
+            line-height: 1.6;
+        }
+        .ai-suggestion-card {
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: white;
+        }
+        .ai-suggestion-card.accepted { border-color: var(--status-completed); background: #f0fdf4; }
+
+        /* Forms & Cards */
+        .card { background: white; border-radius: 8px; border: 1px solid var(--color-border); padding: 16px; margin-bottom: 16px; }
+        .section-label { font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; display: block; }
+        
+        .input-group { margin-bottom: 16px; }
+        .input-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .input-field { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius); font-size: 14px; outline: none; }
+        .input-field:focus { border-color: var(--color-brand); }
+        .textarea-field { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius); font-size: 14px; min-height: 100px; resize: vertical; outline: none; }
+
+        .dept-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .dept-card { 
+            border: 1px solid var(--color-border); 
+            border-radius: 8px; 
+            padding: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px;
+            transition: border-color 0.2s;
+        }
+        .dept-card.active { border-color: var(--color-brand); background: #f8faff; }
+        .dept-name { font-weight: 600; font-size: 14px; }
+        .dept-status { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; align-self: flex-start; }
+
+        /* Status Badges */
+        .badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; display: inline-block; }
+        .badge-draft { background: #f1f5f9; color: #475569; }
+        .badge-pending { background: #fffbeb; color: #b45309; }
+        .badge-approved { background: #eff6ff; color: #1d4ed8; }
+        .badge-progress { background: #f5f3ff; color: #6d28d9; }
+        .badge-completed { background: #f0fdf4; color: #15803d; }
+        .badge-rejected { background: #fef2f2; color: #b91c1c; }
+
+        /* Timeline */
+        .timeline { display: flex; flex-direction: column; gap: 0; }
+        .timeline-item { display: flex; gap: 16px; position: relative; }
+        .timeline-marker { display: flex; flex-direction: column; align-items: center; width: 24px; }
+        .timeline-dot { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; z-index: 10; }
+        .timeline-line { width: 2px; flex: 1; background: var(--color-border); margin: 4px 0; }
+        .timeline-content { flex: 1; padding-bottom: 24px; }
+        .timeline-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .timeline-meta { font-size: 12px; color: var(--color-text-tertiary); }
+
+        /* Buttons */
+        .btn { padding: 10px 20px; border-radius: var(--border-radius); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--color-brand); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: white; border: 1px solid var(--color-border); color: var(--color-text-secondary); }
+        .btn-secondary:hover { background: var(--color-bg-secondary); }
+        .btn-danger { background: var(--status-rejected); color: white; }
+        .btn-success { background: var(--status-completed); color: white; }
+
+        /* Modal */
+        .modal-overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
+            display: none; align-items: center; justify-content: center; z-index: 1000; 
+        }
+        .modal-card { background: white; border-radius: 12px; width: 400px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+        .modal-desc { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 24px; line-height: 1.5; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; }
+
+        /* Notification List */
+        .notif-item { padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; gap: 12px; }
+        .notif-item.unread { background: #f0f7ff; border-left: 4px solid var(--color-brand); }
+        .notif-icon { width: 36px; height: 36px; border-radius: 50%; background: #eef2ff; display: flex; align-items: center; justify-content: center; color: var(--color-brand); }
+        .notif-body { flex: 1; }
+        .notif-title { font-weight: 600; margin-bottom: 4px; }
+        .notif-text { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }
+        .notif-time { font-size: 11px; color: var(--color-text-tertiary); }
+
+        /* Utility */
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 8px; }
+        .mt-4 { margin-top: 16px; }
+        
+        /* Mobile/Small adjustments */
+        @media (max-width: 1024px) {
+            .ai-sidebar { width: 260px; }
+        }
+
+        .screen { display: none; }
+        .screen.active { display: flex; flex-direction: column; width: 100%; height: 100%; }
+
+        /* Animations */
+        .streaming-text::after {
+            content: "|";
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Topbar -->
+    <header class="topbar">
+        <div class="logo">
+            <i class="ti ti-layout-distribute-horizontal"></i>
+            <span>WorkDistrib</span>
+        </div>
+        <div class="user-profile">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-bell"></i>
+                <div style="width: 8px; height: 8px; background: red; border-radius: 50%; margin-left: -14px; margin-top: -12px;"></div>
+            </div>
+            <span>กัญญา น. (Kanya N.)</span>
+            <div class="avatar">KN</div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar-nav">
+            <div class="nav-item active" onclick="showScreen('request')" title="คำขอใหม่">
+                <i class="ti ti-file-plus" style="font-size: 24px;"></i>
+            </div>
+            <div class="nav-item" onclick="showScreen('approval')" title="การอนุมัติ">
+                <i class="ti ti-checklist" style="font-size: 24px;"></i>
+            </div>
+            <div class="nav-item" onclick="showScreen('notifications')" title="การแจ้งเตือน">
+                <i class="ti ti-bell" style="font-size: 24px;"></i>
+            </div>
+            <div class="nav-item" style="margin-top: auto;" title="ตั้งค่า">
+                <i class="ti ti-settings" style="font-size: 24px;"></i>
+            </div>
+        </nav>
+
+        <!-- Screen Area -->
+        <main class="screen-container">
+            
+            <!-- SCREEN: NEW REQUEST -->
+            <section id="screen-request" class="screen active">
+                <div class="screen-header">
+                    <div>
+                        <h1 class="screen-title">สร้างคำขอใหม่ (New Request)</h1>
+                        <p class="screen-subtitle">ระบุความต้องการของลูกค้าและบันทึกเพื่อให้ AI ช่วยวิเคราะห์</p>
+                    </div>
+                </div>
+                <div class="screen-content">
+                    <div class="main-col">
+                        <div class="card">
+                            <span class="section-label">ข้อมูลคำขอ (Request Details)</span>
+                            <div class="input-group">
+                                <label class="input-label">ชื่อโครงการ / ชื่อลูกค้า (Main Task)</label>
+                                <input type="text" id="main-task-name" class="input-field" value="Corporate Action: Stock Dividend" placeholder="ระบุชื่อโครงการ">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">ความต้องการจากลูกค้า (Client Requirement)</label>
+                                <textarea id="client-req" class="textarea-field" placeholder="ใส่รายละเอียดที่ลูกค้าแจ้งมา...">Client ต้องการพัฒนาระบบ Corporate Action สำหรับการจ่าย Stock Dividend รองรับ ex-date calculation ใหม่ตาม SEC circular ที่ออกมาเมื่อเดือนที่แล้ว ต้องการให้เสร็จภายใน Q1...</textarea>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="flex gap-2">
+                                    <span class="badge badge-draft">Regulatory change</span>
+                                    <span class="badge badge-draft">System development</span>
+                                </div>
+                                <button class="btn btn-primary" onclick="saveAndAnalyze()">
+                                    <i class="ti ti-device-floppy"></i> บันทึกและวิเคราะห์ด้วย AI (Save & Analyze)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="distribution-section" class="card" style="opacity: 0.5; pointer-events: none;">
+                            <div class="flex justify-between items-center mb-4" style="margin-bottom: 12px;">
+                                <span class="section-label">โครงสร้างงาน (Workload Hierarchy)</span>
+                                <div class="flex items-center gap-2">
+                                    <span style="font-size: 12px; color: var(--color-text-tertiary);">Progress:</span>
+                                    <strong style="font-size: 12px; color: var(--color-brand);">0%</strong>
+                                </div>
+                            </div>
+                            
+                            <!-- Linear-style Main Task Header -->
+                            <div class="main-task-row" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--color-bg-secondary); border-radius: 8px 8px 0 0; border: 1px solid var(--color-border); border-bottom: none;">
+                                <i class="ti ti-circle" style="color: var(--color-text-tertiary); font-size: 18px;"></i>
+                                <strong style="font-size: 15px;" id="display-main-task">Corporate Action: Stock Dividend</strong>
+                                <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                                    <div class="avatar" style="width: 22px; height: 22px; font-size: 9px; background: #eef2ff; color: var(--color-brand);">KN</div>
+                                    <span class="badge badge-draft" style="font-size: 10px;">Main Issue</span>
+                                </div>
+                            </div>
+
+                            <!-- Linear-style Sub-task List -->
+                            <div class="sub-task-list" style="border: 1px solid var(--color-border); border-radius: 0 0 8px 8px; background: white; overflow: hidden;">
+                                
+                                <!-- Sub-task Row 1 -->
+                                <div class="sub-task-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--color-bg-tertiary); transition: background 0.1s; cursor: pointer;">
+                                    <i class="ti ti-circle-dashed" style="color: var(--status-pending); font-size: 16px;" title="Todo"></i>
+                                    <span style="font-size: 13px; flex: 1;">วิเคราะห์ Spec และผลกระทบ (Business Analysis)</span>
+                                    <div class="flex items-center gap-3">
+                                        <i class="ti ti-antenna-bars-4" style="color: #ef4444; font-size: 14px;" title="High Priority"></i>
+                                        <div class="avatar" style="width: 20px; height: 20px; font-size: 8px; background: #f1f5f9;">ST</div>
+                                        <span style="font-size: 11px; color: var(--color-text-tertiary); width: 60px;">20 ม.ค.</span>
+                                    </div>
+                                </div>
+
+                                <!-- Sub-task Row 2 -->
+                                <div class="sub-task-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--color-bg-tertiary); transition: background 0.1s; cursor: pointer;">
+                                    <i class="ti ti-circle-dashed" style="color: var(--color-text-tertiary); font-size: 16px;" title="Todo"></i>
+                                    <span style="font-size: 13px; flex: 1;">พัฒนา Core Logic และ API (Development)</span>
+                                    <div class="flex items-center gap-3">
+                                        <i class="ti ti-antenna-bars-3" style="color: #f59e0b; font-size: 14px;" title="Medium Priority"></i>
+                                        <div class="avatar" style="width: 20px; height: 20px; font-size: 8px; background: #f1f5f9;">PK</div>
+                                        <span style="font-size: 11px; color: var(--color-text-tertiary); width: 60px;">10 ก.พ.</span>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Add Input -->
+                                <div class="quick-add-row" style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; color: var(--color-text-tertiary);">
+                                    <i class="ti ti-plus" style="font-size: 14px;"></i>
+                                    <input type="text" placeholder="เพิ่มงานย่อย... (Add sub-task)" style="border: none; outline: none; font-size: 13px; width: 100%; color: var(--color-text-secondary); background: transparent;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button class="btn btn-secondary">ยกเลิก (Cancel)</button>
+                            <button class="btn btn-primary" id="btn-submit-approval" disabled onclick="confirmAction('submit')">ส่งขออนุมัติ (Submit for Approval)</button>
+                        </div>
+                    </div>
+
+                    <aside class="ai-sidebar">
+                        <div class="ai-header">
+                            <div class="ai-status-dot" id="ai-status-dot" style="background: var(--color-text-tertiary);"></div>
+                            <span style="font-weight: 600; font-size: 13px;">AI ที่ปรึกษา (AI Guide)</span>
+                            <i class="ti ti-sparkles" style="color: var(--color-text-tertiary); margin-left: auto;" id="ai-sparkle"></i>
+                        </div>
+                        <div class="ai-body" id="ai-body-content">
+                            <div class="ai-bubble" style="text-align: center; color: var(--color-text-tertiary); padding: 40px 20px;">
+                                <i class="ti ti-info-circle" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                                กรุณากดปุ่ม <strong>"บันทึกและวิเคราะห์"</strong> เพื่อเริ่มการทำงานของ AI
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- SCREEN: APPROVAL -->
+            <section id="screen-approval" class="screen">
+                <div class="screen-header">
+                    <div>
+                        <h1 class="screen-title">ตรวจสอบและอนุมัติ (Approval & Review)</h1>
+                        <p class="screen-subtitle">ยืนยัน Main Task และ Sub-tasks ก่อนส่งเข้า Jira</p>
+                    </div>
+                </div>
+                <div class="screen-content">
+                    <div class="main-col">
+                        <div class="card" style="background: #fffbeb; border-color: #fde68a;">
+                            <div class="flex gap-2 items-center">
+                                <i class="ti ti-alert-circle" style="color: #b45309;"></i>
+                                <span style="font-size: 13px; color: #b45309;">รอการอนุมัติจากคุณ <strong>กัญญา น.</strong> — โปรดตรวจสอบโครงสร้างงานด้านล่าง</span>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="flex items-center gap-2 mb-4" style="margin-bottom: 16px;">
+                                <i class="ti ti-square-root-2" style="color: var(--color-brand); font-size: 20px;"></i>
+                                <strong style="font-size: 18px;">Main Task: Corporate Action: Stock Dividend</strong>
+                            </div>
+                            
+                            <span class="section-label">รายการ Sub-tasks ตามลำดับ (Sequential Sub-tasks)</span>
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-marker">
+                                        <div class="timeline-dot" style="background: var(--status-progress); color: white;">1</div>
+                                        <div class="timeline-line"></div>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="flex justify-between">
+                                            <p class="timeline-title">Sub-task: Business Analysis — Requirements & Spec</p>
+                                            <span class="badge badge-progress">รออนุมัติ (Pending)</span>
+                                        </div>
+                                        <p class="timeline-meta">Assignee: Suthida T. | Due: 20 ม.ค. 2569</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-marker">
+                                        <div class="timeline-dot" style="background: var(--status-pending); color: white;">2</div>
+                                        <div class="timeline-line"></div>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <p class="timeline-title">Sub-task: Development — System Implementation</p>
+                                        <p class="timeline-meta">Assignee: Piyawat K. | Due: 10 ก.พ. 2569 | <i>Dependency: Phase 1</i></p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-marker">
+                                        <div class="timeline-dot" style="background: var(--status-pending); color: white;">3</div>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <p class="timeline-title">Sub-task: QA & Testing — UAT Support</p>
+                                        <p class="timeline-meta">Assignee: Natcha W. | Due: 25 ก.พ. 2569 | <i>Dependency: Phase 2</i></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="background: #f8fafc;">
+                            <div class="flex items-center gap-2" style="color: var(--color-brand);">
+                                <i class="ti ti-brand-jira"></i>
+                                <span style="font-weight: 600;">Jira Structure Info</span>
+                            </div>
+                            <p style="font-size: 13px; margin-top: 8px;">หากอนุมัติ ระบบจะสร้าง <strong>1 Main Task</strong> และ <strong>12 Sub-tasks</strong> ภายใต้ Task หลักใน Jira พร้อมตั้งค่าความเชื่อมโยง (Issue Links)</p>
+                        </div>
+
+                        <div class="flex justify-end gap-2">
+                            <button class="btn btn-secondary" onclick="confirmAction('request_changes')">ขอให้แก้ไข (Request Changes)</button>
+                            <button class="btn btn-danger" onclick="confirmAction('reject')">ปฏิเสธ (Reject)</button>
+                            <button class="btn btn-primary" onclick="confirmAction('approve')">อนุมัติและส่ง Jira (Approve & Send to Jira)</button>
+                        </div>
+                    </div>
+
+                    <aside class="ai-sidebar">
+                        <div class="ai-header">
+                            <div class="ai-status-dot" style="background: var(--status-completed);"></div>
+                            <span style="font-weight: 600; font-size: 13px;">สรุปผลจาก AI (AI Summary)</span>
+                        </div>
+                        <div class="ai-body">
+                            <div class="ai-bubble">
+                                โครงสร้าง Main Task และ Sub-tasks นี้สอดคล้องกับมาตรฐานการทำงานของ TSD โดยแยก Phase การวิเคราะห์ พัฒนา และทดสอบอย่างชัดเจน
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- SCREEN: NOTIFICATIONS -->
+            <section id="screen-notifications" class="screen">
+                <div class="screen-header">
+                    <div>
+                        <h1 class="screen-title">การแจ้งเตือน (Notifications)</h1>
+                        <p class="screen-subtitle">ติดตามสถานะ Main Task และ Sub-tasks ใน Jira</p>
+                    </div>
+                </div>
+                <div class="screen-content">
+                    <div class="main-col" style="padding: 0;">
+                        <div class="notif-item unread">
+                            <div class="notif-icon"><i class="ti ti-brand-jira"></i></div>
+                            <div class="notif-body">
+                                <p class="notif-title">Jira Tasks ถูกสร้างแล้ว (Tasks Created)</p>
+                                <p class="notif-text">Main Task: Corporate Action — พร้อม Sub-tasks อีก 12 รายการ</p>
+                                <p class="notif-time">เมื่อ 1 นาทีที่แล้ว</p>
+                            </div>
+                        </div>
+                        <div class="notif-item unread">
+                            <div class="notif-icon" style="background: #fdf2f8; color: #db2777;"><i class="ti ti-alert-triangle"></i></div>
+                            <div class="notif-body">
+                                <p class="notif-title">แจ้งเตือน Sub-task Trigger</p>
+                                <p class="notif-text">Sub-task: BA Spec เสร็จสิ้นแล้ว — ส่งแจ้งเตือนให้ทีม Dev เริ่ม Sub-task ถัดไป</p>
+                                <p class="notif-time">เมื่อ 30 นาทีที่แล้ว</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirm-modal" class="modal-overlay">
+    <div class="modal-card">
+        <h2 class="modal-title" id="modal-title">ยืนยันการดำเนินการ</h2>
+        <p class="modal-desc" id="modal-desc">คุณแน่ใจหรือไม่ว่าต้องการดำเนินการนี้?</p>
+        <div id="modal-input-area" style="display: none; margin-bottom: 20px;">
+            <label class="input-label">เหตุผล (Reason)</label>
+            <textarea class="textarea-field" id="modal-reason" style="min-height: 80px;" placeholder="ระบุเหตุผล..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก (Cancel)</button>
+            <button class="btn btn-primary" id="modal-confirm-btn" onclick="executeAction()">ยืนยัน (Confirm)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentAction = '';
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + screenId).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        // Updated to handle click event properly
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        }
+    }
+
+    function saveAndAnalyze() {
+        const aiBody = document.getElementById('ai-body-content');
+        const aiDot = document.getElementById('ai-status-dot');
+        const aiSparkle = document.getElementById('ai-sparkle');
+        const distSection = document.getElementById('distribution-section');
+        const btnSubmit = document.getElementById('btn-submit-approval');
+        const mainTaskName = document.getElementById('main-task-name').value;
+        const displayMainTask = document.getElementById('display-main-task');
+
+        displayMainTask.innerText = mainTaskName;
+
+        aiBody.innerHTML = `
+            <div class="ai-bubble">
+                <i class="ti ti-loader-2" style="animation: spin 1s linear infinite; margin-right: 8px;"></i>
+                กำลังบันทึกข้อมูลและวิเคราะห์ Requirement...
+            </div>
+        `;
+        aiDot.style.background = 'var(--status-pending)';
+        aiSparkle.style.color = 'var(--status-pending)';
+
+        setTimeout(() => {
+            aiDot.style.background = 'var(--status-completed)';
+            aiSparkle.style.color = 'var(--status-completed)';
+            aiBody.innerHTML = `
+                <div class="ai-bubble streaming-text">
+                    บันทึกข้อมูลสำเร็จ! จากการวิเคราะห์โครงการ <strong>"${mainTaskName}"</strong> ระบบแนะนำให้แตก Sub-task เป็น 4 Phase หลักเพื่อความคล่องตัว...
+                </div>
+                
+                <span class="section-label">ข้อแนะนำ Sub-tasks</span>
+                
+                <div class="ai-suggestion-card">
+                    <div class="flex justify-between items-center mb-2" style="margin-bottom: 8px;">
+                        <span style="font-weight: 600;">Phase 1: Analysis (BA)</span>
+                        <span class="badge badge-approved">Sub-task</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px;">มอบหมายให้ Suthida T. รับผิดชอบเป็น Sub-task หลัก</p>
+                    <div class="flex gap-2">
+                        <button class="btn btn-secondary" style="flex: 1; padding: 4px; font-size: 11px;">แก้ไข</button>
+                        <button class="btn btn-success" style="flex: 1; padding: 4px; font-size: 11px;">ยอมรับ</button>
+                    </div>
+                </div>
+
+                <div class="ai-suggestion-card">
+                    <div class="flex justify-between items-center mb-2" style="margin-bottom: 8px;">
+                        <span style="font-weight: 600;">Phase 2: Development</span>
+                        <span class="badge badge-approved">Sub-task</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px;">แตกงานเป็น Sub-task สำหรับ Front-end และ Back-end</p>
+                    <div class="flex gap-2">
+                        <button class="btn btn-secondary" style="flex: 1; padding: 4px; font-size: 11px;">แก้ไข</button>
+                        <button class="btn btn-success" style="flex: 1; padding: 4px; font-size: 11px;">ยอมรับ</button>
+                    </div>
+                </div>
+            `;
+            
+            distSection.style.opacity = '1';
+            distSection.style.pointerEvents = 'auto';
+            btnSubmit.disabled = false;
+        }, 2000);
+    }
+
+    function confirmAction(action) {
+        currentAction = action;
+        const modal = document.getElementById('confirm-modal');
+        const title = document.getElementById('modal-title');
+        const desc = document.getElementById('modal-desc');
+        const inputArea = document.getElementById('modal-input-area');
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+
+        inputArea.style.display = 'none';
+        confirmBtn.className = 'btn btn-primary';
+
+        if (action === 'submit') {
+            title.innerText = 'ยืนยันการส่งขออนุมัติ';
+            desc.innerHTML = 'ระบบจะส่ง <strong>Main Task</strong> และ <strong>Sub-tasks</strong> ให้ผู้มีอำนาจตรวจสอบ';
+        } else if (action === 'approve') {
+            title.innerText = 'ยืนยันการอนุมัติ';
+            desc.innerHTML = 'ระบบจะสร้าง <strong>1 Main Task</strong> และ <strong>12 Sub-tasks</strong> ใน Jira ทันที';
+            confirmBtn.className = 'btn btn-success';
+        } else if (action === 'reject') {
+            title.innerText = 'ยืนยันการปฏิเสธ';
+            desc.innerHTML = 'โปรดระบุเหตุผลในการปฏิเสธโครงสร้างงานนี้';
+            inputArea.style.display = 'block';
+            confirmBtn.className = 'btn btn-danger';
+        } else if (action === 'request_changes') {
+            title.innerText = 'ขอให้แก้ไขเพิ่มเติม';
+            desc.innerHTML = 'ส่งคำขอคืนเพื่อให้ผู้สร้างปรับปรุงโครงสร้าง Sub-task';
+            inputArea.style.display = 'block';
+            confirmBtn.className = 'btn btn-primary';
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('confirm-modal').style.display = 'none';
+    }
+
+    function executeAction() {
+        const btn = document.getElementById('modal-confirm-btn');
+        btn.innerHTML = '<i class="ti ti-loader-2" style="animation: spin 1s linear infinite;"></i> กำลังดำเนินการ...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            alert('ดำเนินการเรียบร้อยแล้ว');
+            closeModal();
+            btn.innerHTML = 'ยืนยัน (Confirm)';
+            btn.disabled = false;
+            
+            if (currentAction === 'approve') {
+                showScreen('notifications');
+            }
+        }, 1500);
+    }
+</script>
+
+<style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+
+</body>
+</html>

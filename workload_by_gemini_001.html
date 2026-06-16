@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI-Assisted Workload Planning Prototype</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-soft: #eef3f8;
+      --line: #d8e0ea;
+      --line-strong: #b8c6d6;
+      --text: #17202a;
+      --muted: #617083;
+      --subtle: #8794a5;
+      --blue: #185fa5;
+      --blue-soft: #e7f1fb;
+      --green: #14795f;
+      --green-soft: #e4f5ef;
+      --amber: #a86508;
+      --amber-soft: #fff1d8;
+      --red: #a32a2a;
+      --red-soft: #fce9e9;
+      --violet: #4f46a5;
+      --violet-soft: #efedff;
+      --shadow: 0 16px 36px rgba(24, 45, 69, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 232px 1fr;
+    }
+
+    .rail {
+      background: #16212f;
+      color: #dce6f2;
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 6px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #2f7fc1;
+      color: white;
+      font-size: 13px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav button {
+      border: 0;
+      background: transparent;
+      color: #b7c6d8;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .nav button.active {
+      background: rgba(255,255,255,0.1);
+      color: #ffffff;
+    }
+
+    .rail-note {
+      margin-top: auto;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px;
+      padding: 12px;
+      color: #b7c6d8;
+      line-height: 1.45;
+      font-size: 12px;
+    }
+
+    .main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      height: 62px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .topbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--blue-soft);
+      color: #0d477f;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .workspace {
+      padding: 18px 24px 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 336px;
+      gap: 18px;
+      min-height: 0;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .panel-title {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .panel-sub {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .panel-body { padding: 18px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--text);
+      padding: 10px 11px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 128px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.12);
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfe;
+    }
+
+    .btn {
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 9px 13px;
+      font-weight: 700;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .btn.success {
+      border-color: #8fd8c2;
+      background: #a8e5d2;
+      color: #084f3d;
+    }
+
+    .btn.danger {
+      border-color: #e7a8a8;
+      color: var(--red);
+      background: #fff;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .ai-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .ai-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ai-head strong { font-size: 14px; }
+
+    .live-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(20, 121, 95, 0.12);
+    }
+
+    .ai-body {
+      padding: 14px 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .ai-message {
+      background: var(--surface-soft);
+      border-radius: 8px;
+      padding: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric {
+      display: grid;
+      gap: 5px;
+    }
+
+    .metric-top {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 7px;
+      background: var(--surface-soft);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: var(--green);
+      width: 0;
+      transition: width .35s ease;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 99px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--surface-soft);
+      white-space: nowrap;
+    }
+
+    .status-pill.blue { color: #0d477f; background: var(--blue-soft); }
+    .status-pill.green { color: #084f3d; background: var(--green-soft); }
+    .status-pill.amber { color: #774602; background: var(--amber-soft); }
+    .status-pill.red { color: #7c1d1d; background: var(--red-soft); }
+
+    .task-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .task-toolbar h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f6f8fb;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .main-task-row td {
+      background: #eef3f8;
+      color: var(--text);
+      font-weight: 800;
+      border-top: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .main-task-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .main-task-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .main-task-count {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+
+    .sub-task-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sub-task-name::before {
+      content: "";
+      width: 10px;
+      height: 1px;
+      background: var(--line-strong);
+      flex: 0 0 auto;
+    }
+
+    .sub-task-row.rejected {
+      background: var(--red-soft);
+      opacity: .78;
+    }
+
+    .sub-task-row.rejected input,
+    .sub-task-row.rejected select {
+      color: var(--subtle);
+      text-decoration: line-through;
+    }
+
+    .btn.tiny {
+      padding: 6px 8px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    td input, td select {
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .summary-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfcfe;
+    }
+
+    .summary-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .summary-box strong {
+      font-size: 20px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .phase {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .phase-num {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--blue-soft);
+      color: #0d477f;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .phase.done .phase-num {
+      background: var(--green-soft);
+      color: #084f3d;
+    }
+
+    .phase.waiting .phase-num {
+      background: var(--amber-soft);
+      color: #774602;
+    }
+
+    .phase h3 {
+      margin: 0 0 3px;
+      font-size: 14px;
+    }
+
+    .phase p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .feed {
+      display: grid;
+      gap: 10px;
+    }
+
+    .feed-item {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      align-items: start;
+    }
+
+    .feed-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--surface-soft);
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .feed-item.unread {
+      border-left: 4px solid var(--blue);
+      background: #fbfdff;
+    }
+
+    .feed-item h3 {
+      margin: 0 0 4px;
+      font-size: 14px;
+    }
+
+    .feed-item p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .time {
+      color: var(--subtle);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .hidden { display: none !important; }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      background: #16212f;
+      color: white;
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all .2s ease;
+      max-width: 360px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(12, 20, 31, .5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .modal .panel-body { display: grid; gap: 12px; }
+
+    @media (max-width: 1040px) {
+      .app { grid-template-columns: 1fr; }
+      .rail { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .topbar { height: auto; padding: 14px 16px; align-items: flex-start; gap: 10px; }
+      .topbar-meta { flex-wrap: wrap; justify-content: flex-end; }
+      .workspace { padding: 14px; }
+      .form-grid, .summary-grid { grid-template-columns: 1fr; }
+      .panel-head, .button-row { flex-direction: column; align-items: stretch; }
+      .button-row .btn { justify-content: center; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      tr { border-bottom: 1px solid var(--line); padding: 8px; }
+      td { border: 0; padding: 6px; }
+      .phase, .feed-item { grid-template-columns: 34px 1fr; }
+      .phase .status-pill, .feed-item .time { grid-column: 2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div class="brand">
+        <div class="brand-mark">AI</div>
+        <div>Workload Planner</div>
+      </div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="active" data-screen="request"><span>IN</span> New request</button>
+        <button data-screen="approval"><span>OK</span> Approval queue</button>
+        <button data-screen="jira"><span>JR</span> Jira simulation</button>
+        <button data-screen="notifications"><span>NT</span> Notifications</button>
+      </nav>
+      <div class="rail-note">
+        Prototype for Depository and Registrar workload planning. AI advises, human reviewer approves.
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">New workload request</h1>
+          <p class="panel-sub" id="pageSub">Enter a client requirement and generate an AI-assisted work plan.</p>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-pill blue" id="globalStatus">Draft</span>
+          <span>Depository & Registrar</span>
+          <div class="avatar">KN</div>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <div>
+          <section id="screen-request" class="screen active">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-title">Request intake</p>
+                  <p class="panel-sub">This represents the client request form your team would use before task assignment.</p>
+                </div>
+                <span class="status-pill amber" id="requestStatus">Needs AI analysis</span>
+              </div>
+              <div class="panel-body">
+                <div class="form-grid">
+                  <div class="field">
+                    <label for="clientName">Client / project</label>
+                    <input id="clientName" value="Corporate Action - Stock Dividend">
+                  </div>
+                  <div class="field">
+                    <label for="requestType">Request type</label>
+                    <select id="requestType">
+                      <option>Regulatory change</option>
+                      <option>System development</option>
+                      <option>UAT support</option>
+                      <option>Data migration</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="targetDate">Target go-live date</label>
+                    <input id="targetDate" type="date" value="2026-03-01">
+                  </div>
+                  <div class="field">
+                    <label for="urgency">Urgency</label>
+                    <select id="urgency">
+                      <option>High</option>
+                      <option>Critical</option>
+                      <option>Medium</option>
+                      <option>Low</option>
+                    </select>
+                  </div>
+                  <div class="field full">
+                    <label for="requirementText">Client requirement</label>
+                    <textarea id="requirementText">Client needs a Corporate Action system enhancement for stock dividend processing. The system must support a new ex-date calculation rule from a recent SEC circular, include BA specification, development, QA/UAT, registrar operation readiness, Jira task creation, and email notification to each responsible team.</textarea>
+                  </div>
+                </div>
+              </div>
+              <div class="button-row">
+                <button class="btn" id="clearBtn">Clear</button>
+                <button class="btn primary" id="analyzeBtn">Generate AI work plan</button>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:16px">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-title">Recommended main task and sub-task breakdown</p>
+                  <p class="panel-sub">Review the main task first, then edit the sub-tasks before submitting it for approval.</p>
+                </div>
+                <span class="status-pill blue" id="taskCount">0 tasks</span>
+              </div>
+              <div class="panel-body">
+                <div class="task-toolbar">
+                  <h3>Main tasks and sub-tasks</h3>
+                  <button class="btn" id="addTaskBtn">Add main task</button>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:23%">Sub-task</th>
+                      <th style="width:18%">Department</th>
+                      <th style="width:16%">Assignee</th>
+                      <th style="width:13%">Priority</th>
+                      <th style="width:14%">Due date</th>
+                      <th style="width:16%">Dependency</th>
+                      <th style="width:10%">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="taskRows"></tbody>
+                </table>
+              </div>
+              <div class="button-row">
+                <button class="btn" id="saveDraftBtn">Save draft</button>
+                <button class="btn primary" id="submitApprovalBtn" disabled>Submit for approval</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="screen-approval" class="screen">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-title">Human review and approval</p>
+                  <p class="panel-sub">The system cannot create Jira tasks until a reviewer approves the plan.</p>
+                </div>
+                <span class="status-pill amber" id="approvalStatus">Waiting for submission</span>
+              </div>
+              <div class="panel-body">
+                <div class="summary-grid">
+                  <div class="summary-box"><span>Sub-tasks</span><strong id="sumTasks">0</strong></div>
+                  <div class="summary-box"><span>Main tasks</span><strong id="sumDepartments">0</strong></div>
+                  <div class="summary-box"><span>High risk</span><strong id="sumRisk">0</strong></div>
+                  <div class="summary-box"><span>AI confidence</span><strong id="sumConfidence">0%</strong></div>
+                </div>
+                <div class="timeline" id="approvalTimeline"></div>
+              </div>
+              <div class="button-row">
+                <button class="btn danger" id="rejectBtn" disabled>Reject</button>
+                <button class="btn" id="changesBtn" disabled>Request changes</button>
+                <button class="btn success" id="approveBtn" disabled>Approve & create Jira tasks</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="screen-jira" class="screen">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-title">Jira and email simulation</p>
+                  <p class="panel-sub">This mock shows what would happen after approval: Jira issue creation and assignment email.</p>
+                </div>
+                <span class="status-pill" id="jiraStatus">Not created</span>
+              </div>
+              <div class="panel-body">
+                <div class="feed" id="jiraFeed"></div>
+              </div>
+              <div class="button-row">
+                <button class="btn" id="completePhaseBtn" disabled>Mark current phase complete</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="screen-notifications" class="screen">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <p class="panel-title">Notification center</p>
+                  <p class="panel-sub">Assignment, approval, email, and sequential dependency events appear here.</p>
+                </div>
+                <span class="status-pill blue" id="notifCount">0 notifications</span>
+              </div>
+              <div class="panel-body">
+                <div class="feed" id="notificationFeed"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="side">
+          <div class="ai-card">
+            <div class="ai-head">
+              <strong>AI advisory sidebar</strong>
+              <span class="live-dot" aria-hidden="true"></span>
+            </div>
+            <div class="ai-body">
+              <div class="ai-message" id="aiMessage">Enter or adjust the request, then generate a work plan. AI will recommend teams, priority, due dates, and dependencies.</div>
+              <div class="metric">
+                <div class="metric-top"><span>Assignment confidence</span><strong id="confidenceLabel">0%</strong></div>
+                <div class="bar"><span id="confidenceBar"></span></div>
+              </div>
+              <div class="metric">
+                <div class="metric-top"><span>Timeline feasibility</span><strong id="timelineLabel">0%</strong></div>
+                <div class="bar"><span id="timelineBar" style="background:var(--amber)"></span></div>
+              </div>
+              <div class="ai-message" id="riskMessage">No risk detected yet.</div>
+            </div>
+          </div>
+
+          <div class="ai-card">
+            <div class="ai-head">
+              <strong>Workflow controls</strong>
+            </div>
+            <div class="ai-body">
+              <button class="btn" data-screen-shortcut="request">Open request</button>
+              <button class="btn" data-screen-shortcut="approval">Open approval</button>
+              <button class="btn" data-screen-shortcut="jira">Open Jira simulation</button>
+              <button class="btn" data-screen-shortcut="notifications">Open notifications</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="panel-head">
+        <div>
+          <p class="panel-title" id="modalTitle">Confirm action</p>
+          <p class="panel-sub" id="modalSub">Review the action before continuing.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="field hidden" id="reasonField">
+          <label for="reasonText">Reason</label>
+          <textarea id="reasonText" placeholder="Add a reason for the requester"></textarea>
+        </div>
+      </div>
+      <div class="button-row">
+        <button class="btn" id="modalCancel">Cancel</button>
+        <button class="btn primary" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const state = {
+      mainTasks: [],
+      tasks: [],
+      notifications: [],
+      submitted: false,
+      approved: false,
+      activePhase: 1,
+      modalAction: null
+    };
+
+    const baseTasks = [
+      {
+        mainTask: "Regulatory analysis and requirement design",
+        name: "Analyze SEC circular and business rule",
+        department: "Business Analysis",
+        assignee: "Suthida T.",
+        priority: "High",
+        due: "2026-01-20",
+        dependency: "Start"
+      },
+      {
+        mainTask: "Regulatory analysis and requirement design",
+        name: "Prepare requirement specification",
+        department: "Business Analysis",
+        assignee: "Suthida T.",
+        priority: "High",
+        due: "2026-01-23",
+        dependency: "Task 1"
+      },
+      {
+        mainTask: "System implementation",
+        name: "Implement ex-date calculation change",
+        department: "Development",
+        assignee: "Piyawat K.",
+        priority: "High",
+        due: "2026-02-10",
+        dependency: "BA approval"
+      },
+      {
+        mainTask: "Testing and UAT readiness",
+        name: "Create QA test cases and UAT script",
+        department: "QA & Testing",
+        assignee: "Natcha W.",
+        priority: "Medium",
+        due: "2026-02-20",
+        dependency: "Dev complete"
+      },
+      {
+        mainTask: "Registrar operation and go-live",
+        name: "Prepare registrar operation checklist",
+        department: "Registrar Ops",
+        assignee: "Ananya R.",
+        priority: "Medium",
+        due: "2026-03-01",
+        dependency: "UAT sign-off"
+      }
+    ];
+
+    const baseMainTasks = [
+      "Regulatory analysis and requirement design",
+      "System implementation",
+      "Testing and UAT readiness",
+      "Registrar operation and go-live"
+    ];
+
+    const pageCopy = {
+      request: ["New workload request", "Enter a client requirement and generate an AI-assisted work plan."],
+      approval: ["Approval queue", "Review the AI recommendation before work is assigned."],
+      jira: ["Jira simulation", "See the task creation and email notification result."],
+      notifications: ["Notifications", "Track assignments and sequential workflow events."]
+    };
+
+    const departments = ["Business Analysis", "Development", "QA & Testing", "Registrar Ops", "Client Service", "Compliance"];
+    const assignees = ["Suthida T.", "Piyawat K.", "Natcha W.", "Ananya R.", "Kanya N.", "Somchai P."];
+    const priorities = ["Critical", "High", "Medium", "Low"];
+
+    const $ = (id) => document.getElementById(id);
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value;
+      return div.innerHTML;
+    }
+
+    function showToast(message) {
+      const toast = $("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    function setScreen(name) {
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
+      $("screen-" + name).classList.add("active");
+      document.querySelectorAll(".nav button").forEach(btn => btn.classList.toggle("active", btn.dataset.screen === name));
+      $("pageTitle").textContent = pageCopy[name][0];
+      $("pageSub").textContent = pageCopy[name][1];
+    }
+
+    function updateGlobalStatus(text, tone) {
+      const el = $("globalStatus");
+      el.textContent = text;
+      el.className = "status-pill " + (tone || "");
+    }
+
+    function analyzeRequest() {
+      const requirement = $("requirementText").value.trim();
+      if (!requirement) {
+        showToast("Add the client requirement before generating a plan.");
+        return;
+      }
+
+      state.mainTasks = [...baseMainTasks];
+      state.tasks = baseTasks.map(task => ({ ...task, rejected: false }));
+
+      const lower = requirement.toLowerCase();
+      if (lower.includes("email")) {
+        state.tasks.push({
+          mainTask: "Communication and assignment notification",
+          mainTask: "Communication and assignment notification",
+          name: "Validate assignment email template",
+          department: "Client Service",
+          assignee: "Somchai P.",
+          priority: "Medium",
+          due: "2026-02-25",
+          dependency: "Jira created",
+          rejected: false
+        });
+        ensureMainTask("Communication and assignment notification");
+      }
+      if (lower.includes("sec") || lower.includes("regulatory")) {
+        state.tasks.unshift({
+          mainTask: "Regulatory analysis and requirement design",
+          name: "Confirm regulatory interpretation",
+          department: "Compliance",
+          assignee: "Kanya N.",
+          priority: $("urgency").value === "Critical" ? "Critical" : "High",
+          due: "2026-01-18",
+          dependency: "Start",
+          rejected: false
+        });
+      }
+
+      state.submitted = false;
+      state.approved = false;
+      state.activePhase = 1;
+      renderTasks();
+      renderApproval();
+      renderJira();
+      addNotification("AI", "AI work plan generated", "Recommended " + countMainTasks() + " main tasks with " + activeTasks().length + " active sub-tasks across " + countDepartments() + " departments.");
+
+      $("requestStatus").textContent = "AI plan ready";
+      $("requestStatus").className = "status-pill green";
+      $("submitApprovalBtn").disabled = false;
+      $("aiMessage").textContent = "The request touches regulatory interpretation, BA specification, development, QA, and registrar readiness. A sequential workflow is recommended.";
+      $("riskMessage").textContent = "Risk: Timeline is tight. If BA specification is late, Development and QA will be affected.";
+      $("confidenceLabel").textContent = "92%";
+      $("confidenceBar").style.width = "92%";
+      $("timelineLabel").textContent = "71%";
+      $("timelineBar").style.width = "71%";
+      $("sumConfidence").textContent = "92%";
+      updateGlobalStatus("AI plan ready", "green");
+      showToast("AI recommendation generated.");
+    }
+
+    function renderTasks() {
+      const rows = $("taskRows");
+      rows.innerHTML = groupTasksByMainTask().map((group, groupIndex) => `
+        <tr class="main-task-row">
+          <td colspan="7">
+            <div class="main-task-line">
+              <span>
+                ${escapeHtml(group.mainTask)}
+                <span class="main-task-count">${group.tasks.filter(item => !item.task.rejected).length} active / ${group.tasks.length} total sub-task(s)</span>
+              </span>
+              <span class="main-task-actions">
+                <button class="btn tiny" data-add-subtask-index="${groupIndex}">Add sub-task</button>
+              </span>
+            </div>
+          </td>
+        </tr>
+        ${group.tasks.map(({ task, index }) => `
+        <tr class="sub-task-row ${task.rejected ? "rejected" : ""}">
+          <td><div class="sub-task-name"><input value="${escapeHtml(task.name)}" data-index="${index}" data-field="name" ${task.rejected ? "disabled" : ""}></div></td>
+          <td>${selectHtml(departments, task.department, index, "department", task.rejected)}</td>
+          <td>${selectHtml(assignees, task.assignee, index, "assignee", task.rejected)}</td>
+          <td>${selectHtml(priorities, task.priority, index, "priority", task.rejected)}</td>
+          <td><input type="date" value="${escapeHtml(task.due)}" data-index="${index}" data-field="due" ${task.rejected ? "disabled" : ""}></td>
+          <td><input value="${escapeHtml(task.dependency)}" data-index="${index}" data-field="dependency" ${task.rejected ? "disabled" : ""}></td>
+          <td><button class="btn tiny danger" data-reject-subtask="${index}" ${task.rejected ? "disabled" : ""}>Reject</button></td>
+        </tr>
+        `).join("")}
+      `).join("");
+      $("taskCount").textContent = countMainTasks() + " main / " + activeTasks().length + " active sub";
+      rows.querySelectorAll("input, select").forEach(input => input.addEventListener("change", updateTaskFromInput));
+      rows.querySelectorAll("[data-add-subtask-index]").forEach(button => {
+        button.addEventListener("click", () => addSubTask(state.mainTasks[Number(button.dataset.addSubtaskIndex)]));
+      });
+      rows.querySelectorAll("[data-reject-subtask]").forEach(button => {
+        button.addEventListener("click", () => rejectSubTask(Number(button.dataset.rejectSubtask)));
+      });
+    }
+
+    function selectHtml(options, selected, index, field, disabled = false) {
+      return `<select data-index="${index}" data-field="${field}" ${disabled ? "disabled" : ""}>` +
+        options.map(option => `<option${option === selected ? " selected" : ""}>${escapeHtml(option)}</option>`).join("") +
+        `</select>`;
+    }
+
+    function updateTaskFromInput(event) {
+      const index = Number(event.target.dataset.index);
+      const field = event.target.dataset.field;
+      state.tasks[index][field] = event.target.value;
+      renderApproval();
+      if (state.submitted) {
+        state.submitted = false;
+        $("approvalStatus").textContent = "Changed after submission";
+        $("approvalStatus").className = "status-pill amber";
+        $("approveBtn").disabled = true;
+        $("rejectBtn").disabled = true;
+        $("changesBtn").disabled = true;
+        updateGlobalStatus("Needs resubmission", "amber");
+      }
+    }
+
+    function addTask() {
+      const name = prompt("Main task name");
+      if (!name || !name.trim()) return;
+      ensureMainTask(name.trim());
+      renderTasks();
+      renderApproval();
+      $("submitApprovalBtn").disabled = activeTasks().length === 0;
+      addNotification("MT", "Main task added", name.trim());
+      showToast("Main task added.");
+    }
+
+    function addSubTask(mainTask) {
+      if (!mainTask) return;
+      state.tasks.push({
+        mainTask,
+        name: "New task",
+        department: "Business Analysis",
+        assignee: "Kanya N.",
+        priority: "Medium",
+        due: $("targetDate").value || "2026-03-01",
+        dependency: "Manual",
+        rejected: false
+      });
+      renderTasks();
+      renderApproval();
+      $("submitApprovalBtn").disabled = false;
+      addNotification("ST", "Sub-task added", "Added a new sub-task under " + mainTask + ".");
+      showToast("Sub-task added.");
+    }
+
+    function rejectSubTask(index) {
+      if (!state.tasks[index]) return;
+      state.tasks[index].rejected = true;
+      if (state.submitted) {
+        state.submitted = false;
+        $("approvalStatus").textContent = "Changed after submission";
+        $("approvalStatus").className = "status-pill amber";
+        $("approveBtn").disabled = true;
+        $("rejectBtn").disabled = true;
+        $("changesBtn").disabled = true;
+        updateGlobalStatus("Needs resubmission", "amber");
+      }
+      renderTasks();
+      renderApproval();
+      renderJira();
+      $("submitApprovalBtn").disabled = activeTasks().length === 0;
+      addNotification("RJ", "Sub-task rejected", state.tasks[index].name + " was removed from the active work plan.");
+      showToast("Sub-task rejected.");
+    }
+
+    function submitForApproval() {
+      if (!activeTasks().length) {
+        showToast("Add at least one active sub-task before submitting.");
+        return;
+      }
+      state.submitted = true;
+      state.approved = false;
+      $("approvalStatus").textContent = "Waiting for Kanya N.";
+      $("approvalStatus").className = "status-pill amber";
+      $("approveBtn").disabled = false;
+      $("rejectBtn").disabled = false;
+      $("changesBtn").disabled = false;
+      updateGlobalStatus("Pending approval", "amber");
+      addNotification("OK", "Submitted for approval", "The workload plan is waiting for human review.");
+      renderApproval();
+      setScreen("approval");
+      showToast("Submitted for approval.");
+    }
+
+    function countDepartments() {
+      return new Set(activeTasks().map(task => task.department)).size;
+    }
+
+    function countMainTasks() {
+      return state.mainTasks.length;
+    }
+
+    function activeTasks() {
+      return state.tasks.filter(task => !task.rejected);
+    }
+
+    function ensureMainTask(name) {
+      if (!state.mainTasks.includes(name)) state.mainTasks.push(name);
+    }
+
+    function groupTasksByMainTask() {
+      const groups = new Map(state.mainTasks.map(mainTask => [mainTask, []]));
+      state.tasks.forEach((task, index) => {
+        if (!groups.has(task.mainTask)) groups.set(task.mainTask, []);
+        groups.get(task.mainTask).push({ task, index });
+      });
+      return Array.from(groups.entries()).map(([mainTask, tasks]) => ({ mainTask, tasks }));
+    }
+
+    function groupedActiveMainTasks() {
+      return groupTasksByMainTask()
+        .map(group => ({ ...group, tasks: group.tasks.filter(item => !item.task.rejected) }))
+        .filter(group => group.tasks.length);
+    }
+
+    function renderApproval() {
+      $("sumTasks").textContent = activeTasks().length;
+      $("sumDepartments").textContent = groupedActiveMainTasks().length;
+      $("sumRisk").textContent = activeTasks().filter(task => task.priority === "Critical" || task.priority === "High").length;
+
+      const grouped = groupedActiveMainTasks();
+
+      $("approvalTimeline").innerHTML = grouped.map((group, index) => {
+        const phase = index + 1;
+        const statusClass = state.approved && phase < state.activePhase ? "done" : phase === state.activePhase ? "" : "waiting";
+        const statusText = state.approved && phase < state.activePhase ? "Completed" : phase === state.activePhase ? "Current phase" : "Waiting";
+        const due = group.tasks.map(item => item.task.due).sort().at(-1);
+        const owner = group.tasks[0].task.assignee;
+        const groupDepartments = Array.from(new Set(group.tasks.map(item => item.task.department))).join(", ");
+        return `
+          <div class="phase ${statusClass}">
+            <div class="phase-num">${state.approved && phase < state.activePhase ? "OK" : phase}</div>
+            <div>
+              <h3>${escapeHtml(group.mainTask)}</h3>
+              <p>${group.tasks.length} sub-task(s), ${escapeHtml(groupDepartments)}, latest due ${escapeHtml(due)}, owner ${escapeHtml(owner)}</p>
+            </div>
+            <span class="status-pill ${statusClass === "done" ? "green" : statusClass === "waiting" ? "amber" : "blue"}">${statusText}</span>
+          </div>
+        `;
+      }).join("") || `<div class="ai-message">No task plan has been generated yet.</div>`;
+    }
+
+    function openModal(action) {
+      state.modalAction = action;
+      const reasonField = $("reasonField");
+      reasonField.classList.toggle("hidden", action === "approve");
+      $("reasonText").value = "";
+
+      if (action === "approve") {
+        $("modalTitle").textContent = "Approve and create Jira tasks";
+        $("modalSub").textContent = "This will simulate Jira task creation and email notification for all assigned teams.";
+        $("modalConfirm").textContent = "Approve";
+        $("modalConfirm").className = "btn success";
+      } else if (action === "reject") {
+        $("modalTitle").textContent = "Reject request";
+        $("modalSub").textContent = "Add a reason so the requester knows what must be fixed.";
+        $("modalConfirm").textContent = "Reject";
+        $("modalConfirm").className = "btn danger";
+      } else {
+        $("modalTitle").textContent = "Request changes";
+        $("modalSub").textContent = "Add feedback for the requester before sending the plan back.";
+        $("modalConfirm").textContent = "Send back";
+        $("modalConfirm").className = "btn primary";
+      }
+
+      $("modalBackdrop").classList.add("open");
+    }
+
+    function closeModal() {
+      $("modalBackdrop").classList.remove("open");
+      state.modalAction = null;
+    }
+
+    function confirmModal() {
+      const action = state.modalAction;
+      const reason = $("reasonText").value.trim();
+      if (action !== "approve" && !reason) {
+        showToast("Add a reason before continuing.");
+        return;
+      }
+
+      if (action === "approve") {
+        approvePlan();
+      } else if (action === "reject") {
+        $("approvalStatus").textContent = "Rejected";
+        $("approvalStatus").className = "status-pill red";
+        updateGlobalStatus("Rejected", "red");
+        addNotification("NO", "Request rejected", reason);
+        showToast("Request rejected.");
+      } else {
+        $("approvalStatus").textContent = "Changes requested";
+        $("approvalStatus").className = "status-pill blue";
+        updateGlobalStatus("Changes requested", "blue");
+        addNotification("FB", "Changes requested", reason);
+        showToast("Change request sent.");
+      }
+
+      $("approveBtn").disabled = true;
+      $("rejectBtn").disabled = true;
+      $("changesBtn").disabled = true;
+      closeModal();
+    }
+
+    function approvePlan() {
+      state.approved = true;
+      state.activePhase = 1;
+      $("approvalStatus").textContent = "Approved";
+      $("approvalStatus").className = "status-pill green";
+      $("jiraStatus").textContent = "Created";
+      $("jiraStatus").className = "status-pill green";
+      $("completePhaseBtn").disabled = false;
+      updateGlobalStatus("Approved", "green");
+      addNotification("OK", "Approved and sent to Jira", groupedActiveMainTasks().length + " parent Jira tasks and " + activeTasks().length + " sub-tasks were simulated.");
+      renderApproval();
+      renderJira();
+      setScreen("jira");
+      showToast("Approved. Jira and email simulation created.");
+    }
+
+    function renderJira() {
+      const feed = $("jiraFeed");
+      if (!state.approved) {
+        feed.innerHTML = `<div class="ai-message">No Jira issues yet. Approve the plan to create simulated Jira tasks and email notifications.</div>`;
+        return;
+      }
+
+      feed.innerHTML = groupedActiveMainTasks().map((group, groupIndex) => `
+        <div class="feed-item unread">
+          <div class="feed-icon">JR</div>
+          <div>
+            <h3>JIRA-${String(2401 + groupIndex)} Parent task</h3>
+            <p>${escapeHtml(group.mainTask)} contains ${group.tasks.length} sub-task(s). The parent task tracks the overall phase and progress.</p>
+          </div>
+          <span class="time">Parent</span>
+        </div>
+        ${group.tasks.map(({ task, index }, subIndex) => `
+        <div class="feed-item ${index < 2 ? "unread" : ""}">
+          <div class="feed-icon">ST</div>
+          <div>
+            <h3>JIRA-${String(2401 + groupIndex)}-${subIndex + 1} Sub-task</h3>
+            <p>${escapeHtml(task.name)} assigned to ${escapeHtml(task.assignee)} in ${escapeHtml(task.department)}. Priority: ${escapeHtml(task.priority)}. Due: ${escapeHtml(task.due)}.</p>
+          </div>
+          <span class="time">${index < 2 ? "New" : "Queued"}</span>
+        </div>
+        `).join("")}
+      `).join("");
+    }
+
+    function completeCurrentPhase() {
+      if (!state.approved) return;
+      const maxPhase = groupedActiveMainTasks().length;
+      addNotification("NT", "Phase " + state.activePhase + " completed", "The next responsible department has been notified automatically.");
+      state.activePhase += 1;
+      if (state.activePhase > maxPhase) {
+        $("completePhaseBtn").disabled = true;
+        updateGlobalStatus("Workflow complete", "green");
+        addNotification("OK", "Workflow completed", "All sequential phases are complete.");
+      }
+      renderApproval();
+      showToast("Dependency notification triggered.");
+    }
+
+    function addNotification(icon, title, detail) {
+      state.notifications.unshift({
+        icon,
+        title,
+        detail,
+        time: "Just now"
+      });
+      renderNotifications();
+    }
+
+    function renderNotifications() {
+      $("notifCount").textContent = state.notifications.length + " notifications";
+      $("notificationFeed").innerHTML = state.notifications.map((item, index) => `
+        <div class="feed-item ${index < 2 ? "unread" : ""}">
+          <div class="feed-icon">${escapeHtml(item.icon)}</div>
+          <div>
+            <h3>${escapeHtml(item.title)}</h3>
+            <p>${escapeHtml(item.detail)}</p>
+          </div>
+          <span class="time">${escapeHtml(item.time)}</span>
+        </div>
+      `).join("") || `<div class="ai-message">No notifications yet.</div>`;
+    }
+
+    function clearForm() {
+      $("clientName").value = "";
+      $("requirementText").value = "";
+      state.mainTasks = [];
+      state.tasks = [];
+      state.submitted = false;
+      state.approved = false;
+      renderTasks();
+      renderApproval();
+      renderJira();
+      $("submitApprovalBtn").disabled = true;
+      $("requestStatus").textContent = "Needs AI analysis";
+      $("requestStatus").className = "status-pill amber";
+      updateGlobalStatus("Draft", "");
+    }
+
+    document.querySelectorAll(".nav button").forEach(btn => btn.addEventListener("click", () => setScreen(btn.dataset.screen)));
+    document.querySelectorAll("[data-screen-shortcut]").forEach(btn => btn.addEventListener("click", () => setScreen(btn.dataset.screenShortcut)));
+    $("analyzeBtn").addEventListener("click", analyzeRequest);
+    $("clearBtn").addEventListener("click", clearForm);
+    $("addTaskBtn").addEventListener("click", addTask);
+    $("saveDraftBtn").addEventListener("click", () => showToast("Draft saved locally in this mock."));
+    $("submitApprovalBtn").addEventListener("click", submitForApproval);
+    $("approveBtn").addEventListener("click", () => openModal("approve"));
+    $("rejectBtn").addEventListener("click", () => openModal("reject"));
+    $("changesBtn").addEventListener("click", () => openModal("changes"));
+    $("modalCancel").addEventListener("click", closeModal);
+    $("modalConfirm").addEventListener("click", confirmModal);
+    $("completePhaseBtn").addEventListener("click", completeCurrentPhase);
+
+    renderTasks();
+    renderApproval();
+    renderJira();
+    renderNotifications();
+  </script>
+</body>
+</html>
